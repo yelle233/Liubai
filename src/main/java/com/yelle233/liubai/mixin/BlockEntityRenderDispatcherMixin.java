@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.yelle233.liubai.client.ClientHooks;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,9 +13,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(BlockEntityRenderDispatcher.class)
 public abstract class BlockEntityRenderDispatcherMixin {
-    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
-    private <E extends BlockEntity> void liubai$earlyCull(E blockEntity, float partialTick, PoseStack poseStack,
-                                                          MultiBufferSource bufferSource, CallbackInfo callback) {
-        if (ClientHooks.shouldSkipBlockEntity(blockEntity)) callback.cancel();
+    @Inject(method = "setupAndRender", at = @At("HEAD"), cancellable = true)
+    private static <T extends BlockEntity> void liubai$cullAfterVanillaChecks(BlockEntityRenderer<T> renderer,
+                                                                              T blockEntity, float partialTick,
+                                                                              PoseStack poseStack,
+                                                                              MultiBufferSource bufferSource,
+                                                                              CallbackInfo callback) {
+        try {
+            // Avoid even asking a third-party renderer for bounds when Liubai's built-in backend is inactive.
+            if (!ClientHooks.shouldInspectBlockEntities()) return;
+            if (ClientHooks.shouldBypassBlockEntity(blockEntity)) return;
+            if (ClientHooks.shouldSkipBlockEntity(blockEntity, renderer.getRenderBoundingBox(blockEntity))) callback.cancel();
+        } catch (RuntimeException ignored) {
+            // A third-party renderer with a broken bounds implementation stays visible.
+        }
     }
 }

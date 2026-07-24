@@ -15,10 +15,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(EntityRenderDispatcher.class)
 public abstract class EntityRenderDispatcherMixin {
-    @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "shouldRender", at = @At("RETURN"), cancellable = true)
     private <E extends Entity> void liubai$earlyCull(E entity, Frustum frustum, double camX, double camY, double camZ,
                                                      CallbackInfoReturnable<Boolean> callback) {
-        if (ClientHooks.shouldSkipEntity(entity)) callback.setReturnValue(false);
+        if (callback.getReturnValueZ() && ClientHooks.shouldSkipEntity(entity, camX, camY, camZ)) callback.setReturnValue(false);
     }
 
     @Inject(method = "renderShadow", at = @At("HEAD"), cancellable = true)

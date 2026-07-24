@@ -3,6 +3,7 @@ package com.yelle233.liubai.client;
 import com.yelle233.liubai.Liubai;
 import com.yelle233.liubai.config.ConfigSnapshot;
 import com.yelle233.liubai.compat.CompatibilityManager;
+import com.yelle233.liubai.compat.sable.SableCompatibility;
 import com.yelle233.liubai.visibility.EffectiveVisibilityBackend;
 import com.yelle233.liubai.visibility.VisibilityService;
 import net.minecraft.client.Camera;
@@ -32,11 +33,12 @@ public final class LiubaiClientSystem {
         ConfigSnapshot currentConfig = config;
         frameConfig = currentConfig;
         if (currentConfig == null) {
-            policies.beginFrame(FrameContext.EMPTY, null, EffectiveVisibilityBackend.DISABLED);
+            policies.beginFrame(FrameContext.EMPTY, null, EffectiveVisibilityBackend.DISABLED, 0);
             temporalScheduler.beginFrame(FrameContext.EMPTY, null);
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
+        SableCompatibility.beginFrame(minecraft.level);
         if (minecraft.level != lastLevel) {
             visibility.clear();
             budget.reset();
@@ -52,7 +54,8 @@ public final class LiubaiClientSystem {
             visibilityBackend = resolvedBackend;
             Liubai.LOGGER.info("Liubai generic visibility backend switched to {}.", visibilityBackend);
         }
-        policies.beginFrame(frame, currentConfig, visibilityBackend);
+        int liveParticles = particleCount(minecraft);
+        policies.beginFrame(frame, currentConfig, visibilityBackend, liveParticles);
         temporalScheduler.beginFrame(frame, currentConfig);
         budget.beginFrame();
         if (visibilityBackend == EffectiveVisibilityBackend.BUILTIN && minecraft.level != null) {
@@ -64,9 +67,17 @@ public final class LiubaiClientSystem {
         ConfigSnapshot currentConfig = frameConfig;
         frameConfig = null;
         if (currentConfig == null) return;
-        VisibilityService.Counts counts = currentConfig.showHud() ? visibility.counts() : new VisibilityService.Counts(0, 0, 0, 0);
-        statistics.finishFrame(counts.visible(), counts.occluded(), counts.unknown(), counts.queued());
-        budget.endFrame(currentConfig);
+        VisibilityService.Counts counts = currentConfig.showHud() ? visibility.counts() : new VisibilityService.Counts(0, 0, 0, 0, 0, 0);
+        statistics.finishFrame(counts, policies.liveParticleCount());
+        budget.endFrame(currentConfig, Minecraft.getInstance().options.framerateLimit().get());
+    }
+
+    private static int particleCount(Minecraft minecraft) {
+        try {
+            return Integer.parseInt(minecraft.particleEngine.countParticles());
+        } catch (RuntimeException ignored) {
+            return 0;
+        }
     }
 
     public RenderPolicyManager policies() { return policies; }
@@ -74,6 +85,14 @@ public final class LiubaiClientSystem {
     public FrameContext frame() { return frame; }
     public ConfigSnapshot config() { return config; }
     public double averageRenderMillis() { return budget.averageRenderMillis(); }
+    public double p95RenderMillis() { return budget.p95RenderMillis(); }
+    public double p99RenderMillis() { return budget.p99RenderMillis(); }
+    public int effectiveTargetFps() {
+        ConfigSnapshot current = config;
+        if (current == null) return 60;
+        int limit = Minecraft.getInstance().options.framerateLimit().get();
+        return limit > 0 && limit < 260 ? Math.min(current.targetFps(), limit) : current.targetFps();
+    }
     public EffectiveVisibilityBackend visibilityBackend() { return visibilityBackend; }
     public TemporalLodScheduler temporalScheduler() { return temporalScheduler; }
     public RenderStatistics statisticsRecorder() { return statistics; }
@@ -85,6 +104,10 @@ public final class LiubaiClientSystem {
                 || !currentConfig.flywheelAdaptiveLimiter()
                 || !CompatibilityManager.INSTANCE.supportsAdaptiveFlywheelLimiter()
                 || currentFrame.pressure() == PressureLevel.NORMAL) return original;
+        if (SableCompatibility.flywheelSafeModeActive()) {
+            statistics.sableFlywheelBypassed();
+            return original;
+        }
         double safeDistance = Math.max(16.0, currentConfig.safeDistance());
         if (distanceSquared <= safeDistance * safeDistance) return original;
         int multiplier = currentFrame.pressure() == PressureLevel.CRITICAL

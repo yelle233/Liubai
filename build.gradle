@@ -123,6 +123,9 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
+sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
+sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
+
 dependencies {
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
@@ -188,6 +191,23 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+tasks.register('liubaiSelfTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs dependency-free regression checks for Liubai visibility and projection safety helpers.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.yelle233.liubai.LiubaiSelfTest'
+    jvmArgs '-ea'
+}
+
+tasks.named('test', Test).configure {
+    failOnNoDiscoveredTests = false
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('liubaiSelfTest')
 }
 
 tasks.named('jar', Jar).configure {

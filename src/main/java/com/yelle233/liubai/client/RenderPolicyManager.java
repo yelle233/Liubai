@@ -1,50 +1,78 @@
 package com.yelle233.liubai.client;
 
-import com.yelle233.liubai.config.ConfigSnapshot;
 import com.yelle233.liubai.api.LiubaiApi;
+import com.yelle233.liubai.config.ConfigSnapshot;
+import com.yelle233.liubai.compat.sable.SableCompatibility;
 import com.yelle233.liubai.visibility.EffectiveVisibilityBackend;
 import com.yelle233.liubai.visibility.RenderObjectKey;
+import com.yelle233.liubai.visibility.VisibilityMath;
 import com.yelle233.liubai.visibility.VisibilityService;
 import com.yelle233.liubai.visibility.VisibilityState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public final class RenderPolicyManager {
+    private static final Set<ParticleType<?>> IMPORTANT_PARTICLES = Set.of(
+            ParticleTypes.DAMAGE_INDICATOR, ParticleTypes.TOTEM_OF_UNDYING, ParticleTypes.SONIC_BOOM,
+            ParticleTypes.EXPLOSION_EMITTER, ParticleTypes.FLASH, ParticleTypes.SWEEP_ATTACK
+    );
+    private static final double MAX_GENERIC_BOUNDS = 256.0;
+
     private final VisibilityService visibility;
     private final RenderStatistics statistics;
     private final Map<Object, RenderDecision> frameDecisions = new IdentityHashMap<>();
+    private final Map<Object, Boolean> dynamicSubLevelObjects = new IdentityHashMap<>();
+    private final Map<Long, Integer> denseEntityCounts = new HashMap<>();
+    private final Map<RenderObjectKey, ScreenState> screenStates = new HashMap<>();
     private FrameContext frame = FrameContext.EMPTY;
     private ConfigSnapshot config;
     private EffectiveVisibilityBackend visibilityBackend = EffectiveVisibilityBackend.DISABLED;
     private long particleSequence;
+    private int particlesAdmittedThisFrame;
+    private int liveParticleCount;
 
     public RenderPolicyManager(VisibilityService visibility, RenderStatistics statistics) {
         this.visibility = visibility;
         this.statistics = statistics;
     }
 
-    public void beginFrame(FrameContext frame, ConfigSnapshot config, EffectiveVisibilityBackend visibilityBackend) {
+    public void beginFrame(FrameContext frame, ConfigSnapshot config, EffectiveVisibilityBackend visibilityBackend, int liveParticleCount) {
         this.frame = frame;
         this.config = config;
         this.visibilityBackend = visibilityBackend;
+        this.liveParticleCount = liveParticleCount;
+        particlesAdmittedThisFrame = 0;
         frameDecisions.clear();
+        dynamicSubLevelObjects.clear();
+        denseEntityCounts.clear();
+        if ((frame.frame() & 255L) == 0L) {
+            long oldest = frame.frame() - 600L;
+            screenStates.values().removeIf(state -> state.lastFrame < oldest);
+        }
     }
 
     public RenderDecision decide(Entity entity) {
@@ -55,6 +83,12 @@ public final class RenderPolicyManager {
         RenderDecision cached = frameDecisions.get(entity);
         if (cached != null) return cached;
 
+        if (isDynamicSubLevelEntity(entity)) {
+            frameDecisions.put(entity, RenderDecision.FULL);
+            statistics.sableEntityBypassed();
+            return RenderDecision.FULL;
+        }
+
         RenderObjectKey key = RenderObjectKey.entity(entity.level().dimension(), entity.getUUID());
         RenderDecision decision = decideEntityUncached(entity, key);
         frameDecisions.put(entity, decision);
@@ -64,34 +98,68 @@ public final class RenderPolicyManager {
 
     private RenderDecision decideEntityUncached(Entity entity, RenderObjectKey key) {
         ResourceLocation typeId = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
-        Vec3 center = entity.getBoundingBox().getCenter();
+        AABB bounds = LiubaiApi.resolveRenderBounds(entity, entity.getBoundingBoxForCulling());
+        if (!safeGenericBounds(bounds)) return new RenderDecision(false, RenderDecision.Reason.SAFE);
+        Vec3 center = bounds.getCenter();
         double distanceSqr = frame.cameraPosition().distanceToSqr(center);
         if (distanceSqr <= config.safeDistance() * config.safeDistance() || isImportant(entity) || LiubaiApi.isForceVisible(entity)) {
-            return new RenderDecision(false, 0, RenderDecision.Reason.SAFE);
+            return new RenderDecision(false, RenderDecision.Reason.SAFE);
         }
         if (isDisabled(typeId, config.entityAllowlist())) {
-            return new RenderDecision(false, 0, RenderDecision.Reason.ALLOWLISTED);
+            return new RenderDecision(false, RenderDecision.Reason.ALLOWLISTED);
         }
 
-        double radius = Math.max(0.35, Math.max(entity.getBbWidth(), entity.getBbHeight()) * 0.5);
+        if (shouldApplyDensityLimit(entity, typeId, distanceSqr)) {
+            return new RenderDecision(true, RenderDecision.Reason.DENSITY_LIMIT);
+        }
+
+        double radius = Math.max(0.35, Math.max(bounds.getXsize(), Math.max(bounds.getYsize(), bounds.getZsize())) * 0.5);
         double pixels = frame.projectedRadiusPixels(radius, center);
-        int lod = pixels < 10 ? 2 : pixels < 24 ? 1 : 0;
-        if (config.screenSpaceLod() && frame.pressure() != PressureLevel.NORMAL && config.minimumProjectedRadius() > 0 && distanceSqr > 576) {
-            double threshold = config.minimumProjectedRadius() * (frame.pressure() == PressureLevel.CRITICAL ? 1.6 : 1.0);
-            if (pixels < threshold) return new RenderDecision(true, 4, RenderDecision.Reason.TOO_SMALL);
+        if (shouldSkipForScreenSize(key, pixels, distanceSqr)) {
+            return new RenderDecision(true, RenderDecision.Reason.TOO_SMALL);
         }
 
         if (visibilityBackend == EffectiveVisibilityBackend.BUILTIN
                 && distanceSqr >= config.occlusionMinDistance() * config.occlusionMinDistance()) {
-            VisibilityState state = visibility.query(key, entity.getBoundingBox(), frame, config);
+            VisibilityState state = visibility.query(key, bounds, frame, config);
             if (state == VisibilityState.OCCLUDED) {
-                return new RenderDecision(true, 4, RenderDecision.Reason.OCCLUDED);
+                return new RenderDecision(true, RenderDecision.Reason.OCCLUDED);
             }
         }
-        return new RenderDecision(false, lod, RenderDecision.Reason.VISIBLE);
+        return new RenderDecision(false, RenderDecision.Reason.VISIBLE);
     }
 
-    public RenderDecision decide(BlockEntity blockEntity) {
+    private boolean shouldApplyDensityLimit(Entity entity, ResourceLocation typeId, double distanceSqr) {
+        if (!config.denseVanillaEntities() || frame.pressure() == PressureLevel.NORMAL || typeId == null
+                || !"minecraft".equals(typeId.getNamespace())
+                || (!(entity instanceof ItemEntity) && !(entity instanceof ExperienceOrb))
+                || distanceSqr <= config.denseEntityDistance() * config.denseEntityDistance()) return false;
+        long chunk = ChunkPos.asLong(entity.getBlockX() >> 4, entity.getBlockZ() >> 4);
+        int count = denseEntityCounts.merge(chunk, 1, Integer::sum);
+        int limit = frame.pressure() == PressureLevel.CRITICAL
+                ? config.denseEntityCriticalLimit() : config.denseEntityHighLimit();
+        return count > limit;
+    }
+
+    private boolean shouldSkipForScreenSize(RenderObjectKey key, double pixels, double distanceSqr) {
+        if (!config.screenSpaceLod() || frame.pressure() == PressureLevel.NORMAL
+                || config.minimumProjectedRadius() <= 0 || distanceSqr <= 576.0) {
+            screenStates.remove(key);
+            return false;
+        }
+        double hideThreshold = config.minimumProjectedRadius() * (frame.pressure() == PressureLevel.CRITICAL ? 1.6 : 1.0);
+        ScreenState old = screenStates.get(key);
+        if (pixels >= hideThreshold * 1.35) {
+            screenStates.put(key, new ScreenState(0, false, frame.frame()));
+            return false;
+        }
+        int smallFrames = pixels < hideThreshold ? (old == null ? 1 : old.smallFrames + 1) : 0;
+        boolean skip = (old != null && old.skipped && pixels < hideThreshold * 1.35) || smallFrames >= 3;
+        screenStates.put(key, new ScreenState(smallFrames, skip, frame.frame()));
+        return skip;
+    }
+
+    public RenderDecision decide(BlockEntity blockEntity, AABB rendererBounds) {
         if (config == null || !config.enabled() || !config.blockEntityCulling() || blockEntity.getLevel() == null
                 || visibilityBackend != EffectiveVisibilityBackend.BUILTIN) {
             return RenderDecision.FULL;
@@ -101,25 +169,55 @@ public final class RenderPolicyManager {
 
         RenderObjectKey key = RenderObjectKey.blockEntity(blockEntity.getLevel().dimension(), blockEntity.getBlockPos().asLong());
         ResourceLocation typeId = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType());
-        BlockPos pos = blockEntity.getBlockPos();
-        AABB bounds = new AABB(pos);
-        Vec3 center = bounds.getCenter();
-        double distanceSqr = frame.cameraPosition().distanceToSqr(center);
+        AABB bounds = LiubaiApi.resolveRenderBounds(blockEntity, rendererBounds);
         RenderDecision decision;
-        if (distanceSqr <= config.safeDistance() * config.safeDistance() || LiubaiApi.isForceVisible(blockEntity)) {
-            decision = new RenderDecision(false, 0, RenderDecision.Reason.SAFE);
-        } else if (isDisabled(typeId, config.blockEntityAllowlist())) {
-            decision = new RenderDecision(false, 0, RenderDecision.Reason.ALLOWLISTED);
-        } else if (distanceSqr >= config.occlusionMinDistance() * config.occlusionMinDistance()
-                && visibility.query(key, bounds, frame, config) == VisibilityState.OCCLUDED) {
-            decision = new RenderDecision(true, 4, RenderDecision.Reason.OCCLUDED);
+        if (!safeGenericBounds(bounds)) {
+            decision = new RenderDecision(false, RenderDecision.Reason.SAFE);
         } else {
-            double pixels = frame.projectedRadiusPixels(0.866, center);
-            decision = new RenderDecision(false, pixels < 12 ? 2 : pixels < 28 ? 1 : 0, RenderDecision.Reason.VISIBLE);
+            Vec3 center = bounds.getCenter();
+            double distanceSqr = frame.cameraPosition().distanceToSqr(center);
+            if (distanceSqr <= config.safeDistance() * config.safeDistance() || LiubaiApi.isForceVisible(blockEntity)) {
+                decision = new RenderDecision(false, RenderDecision.Reason.SAFE);
+            } else if (isDisabled(typeId, config.blockEntityAllowlist())) {
+                decision = new RenderDecision(false, RenderDecision.Reason.ALLOWLISTED);
+            } else if (distanceSqr >= config.occlusionMinDistance() * config.occlusionMinDistance()
+                    && visibility.query(key, bounds, frame, config) == VisibilityState.OCCLUDED) {
+                decision = new RenderDecision(true, RenderDecision.Reason.OCCLUDED);
+            } else {
+                decision = new RenderDecision(false, RenderDecision.Reason.VISIBLE);
+            }
         }
         frameDecisions.put(blockEntity, decision);
         statistics.blockEntity(decision);
         return decision;
+    }
+
+    public boolean bypassDynamicBlockEntity(BlockEntity blockEntity) {
+        if (config == null || !config.enabled() || blockEntity == null || blockEntity.getLevel() == null) return false;
+        Boolean cached = dynamicSubLevelObjects.get(blockEntity);
+        if (cached != null) return cached;
+        boolean bypass = SableCompatibility.contains(blockEntity);
+        dynamicSubLevelObjects.put(blockEntity, bypass);
+        if (bypass) statistics.sableBlockEntityBypassed();
+        return bypass;
+    }
+
+    public boolean inspectBlockEntities() {
+        return config != null && config.enabled() && config.blockEntityCulling()
+                && visibilityBackend == EffectiveVisibilityBackend.BUILTIN;
+    }
+
+    private boolean isDynamicSubLevelEntity(Entity entity) {
+        Boolean cached = dynamicSubLevelObjects.get(entity);
+        if (cached != null) return cached;
+        boolean bypass = SableCompatibility.contains(entity);
+        dynamicSubLevelObjects.put(entity, bypass);
+        return bypass;
+    }
+
+    private static boolean safeGenericBounds(AABB bounds) {
+        return VisibilityMath.isFinite(bounds) && bounds.getXsize() <= MAX_GENERIC_BOUNDS
+                && bounds.getYsize() <= MAX_GENERIC_BOUNDS && bounds.getZsize() <= MAX_GENERIC_BOUNDS;
     }
 
     private boolean isImportant(Entity entity) {
@@ -131,12 +229,14 @@ public final class RenderPolicyManager {
         return entity instanceof Mob mob && minecraft.player != null && mob.getTarget() == minecraft.player;
     }
 
-    private boolean isDisabled(ResourceLocation id, java.util.Set<String> allowlist) {
+    private boolean isDisabled(ResourceLocation id, Set<String> allowlist) {
         return id == null || allowlist.contains(id.toString()) || config.disabledNamespaces().contains(id.getNamespace());
     }
 
     public boolean skipShadow(Entity entity) {
-        if (config == null || !config.enabled() || !config.reduceShadows() || isImportant(entity)) return false;
+        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        if (config == null || !config.enabled() || !config.reduceShadows() || isDynamicSubLevelEntity(entity) || isImportant(entity)
+                || isDisabled(id, config.entityAllowlist())) return false;
         double distance = config.shadowDistance();
         if (frame.pressure() == PressureLevel.HIGH) distance *= 0.75;
         if (frame.pressure() == PressureLevel.CRITICAL) distance *= 0.5;
@@ -146,7 +246,9 @@ public final class RenderPolicyManager {
     }
 
     public boolean skipNameTag(Entity entity) {
-        if (config == null || !config.enabled() || !config.reduceNameTags() || isImportant(entity)) return false;
+        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        if (config == null || !config.enabled() || !config.reduceNameTags() || isDynamicSubLevelEntity(entity) || isImportant(entity)
+                || isDisabled(id, config.entityAllowlist())) return false;
         double distance = config.nameTagDistance();
         if (frame.pressure() == PressureLevel.CRITICAL) distance *= 0.75;
         boolean skip = frame.cameraPosition().distanceToSqr(entity.position()) > distance * distance;
@@ -154,12 +256,42 @@ public final class RenderPolicyManager {
         return skip;
     }
 
+    public boolean skipParticle(ParticleOptions options, Vec3 position) {
+        if (options != null && IMPORTANT_PARTICLES.contains(options.getType())) return false;
+        return skipParticle(position);
+    }
+
     public boolean skipParticle(Vec3 position) {
         if (config == null || !config.enabled() || !config.reduceParticles() || frame.pressure() == PressureLevel.NORMAL) return false;
+        if (SableCompatibility.contains(Minecraft.getInstance().level, position)) {
+            statistics.sableParticleBypassed();
+            return false;
+        }
         if (frame.cameraPosition().distanceToSqr(position) <= config.particleDistance() * config.particleDistance()) return false;
+        int budget = frame.pressure() == PressureLevel.CRITICAL
+                ? config.particleCriticalBudget() : config.particleHighBudget();
+        boolean saturated = liveParticleCount >= config.particleSoftLimit();
         long sequence = particleSequence++;
-        boolean skip = frame.pressure() == PressureLevel.CRITICAL ? (sequence & 3L) != 0 : (sequence & 1L) != 0;
-        if (skip) statistics.particleSkipped();
+        boolean sampledOut;
+        if (frame.pressure() == PressureLevel.CRITICAL) {
+            sampledOut = saturated ? (sequence & 7L) != 0 : (sequence & 3L) != 0;
+        } else {
+            sampledOut = saturated ? (sequence & 3L) != 0 : (sequence & 1L) != 0;
+        }
+        boolean skip = particlesAdmittedThisFrame >= budget || sampledOut;
+        if (skip) {
+            statistics.particleSkipped();
+        } else {
+            particlesAdmittedThisFrame++;
+            statistics.particleAccepted();
+        }
         return skip;
+    }
+
+    public int liveParticleCount() {
+        return liveParticleCount;
+    }
+
+    private record ScreenState(int smallFrames, boolean skipped, long lastFrame) {
     }
 }

@@ -8,62 +8,108 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayDeque;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.PriorityQueue;
 
-/**
- * Conservative, budgeted visibility cache. Render hooks only enqueue/read records;
- * all world access happens once at frame start on the client thread.
- */
+/** Conservative, prioritized visibility cache. All world reads remain on the client thread. */
 public final class VisibilityService {
-    private static final int MAX_QUEUE = 4096;
+    private static final int MAX_PENDING = 4096;
+    private static final int MAX_HEAP_ENTRIES = MAX_PENDING * 4;
+    private static final double BOUNDS_TOLERANCE = 0.25;
+
     private final Map<RenderObjectKey, Record> records = new HashMap<>();
-    private final ArrayDeque<Request> queue = new ArrayDeque<>();
-    private final Set<RenderObjectKey> queuedKeys = new HashSet<>();
+    private final Map<RenderObjectKey, Request> pending = new HashMap<>();
+    private final PriorityQueue<Request> queue = new PriorityQueue<>(Comparator
+            .comparingDouble(Request::priority).thenComparingLong(Request::sequence));
+    private final Map<Long, Boolean> frameSolidBlocks = new HashMap<>();
+    private long requestSequence;
+    private Vec3 lastProcessCamera;
+    private int lastProcessed;
+    private long lastProcessNanos;
 
     public VisibilityState query(RenderObjectKey key, AABB bounds, FrameContext frame, ConfigSnapshot config) {
+        if (!VisibilityMath.isFinite(bounds)) return VisibilityState.VISIBLE;
         Record record = records.get(key);
-        boolean moved = record != null && record.camera.distanceToSqr(frame.cameraPosition()) > 0.25;
-        boolean boundsChanged = record != null && bounds.getCenter().distanceToSqr(record.bounds.getCenter()) > 1.0;
-        boolean expired = record == null || frame.frame() >= record.nextCheckFrame || moved || boundsChanged;
-        if (expired) enqueue(key, bounds);
-        if (record == null || moved || boundsChanged) return VisibilityState.UNKNOWN;
+        boolean cameraMoved = record != null && record.camera.distanceToSqr(frame.cameraPosition()) > 0.25;
+        boolean boundsChanged = record != null && VisibilityMath.boundsChanged(record.bounds, bounds, BOUNDS_TOLERANCE);
+        boolean expired = record == null || frame.frame() >= record.nextCheckFrame || cameraMoved || boundsChanged;
+        if (expired) enqueue(key, bounds, frame, record, cameraMoved || boundsChanged);
+        if (record == null || boundsChanged) return VisibilityState.UNKNOWN;
+        if (cameraMoved && (record.state != VisibilityState.OCCLUDED || record.proof == null
+                || !record.proof.stillBlocks(frame.cameraPosition()))) return VisibilityState.UNKNOWN;
         return record.state;
     }
 
-    private void enqueue(RenderObjectKey key, AABB bounds) {
-        if (queue.size() >= MAX_QUEUE || !queuedKeys.add(key)) return;
-        queue.addLast(new Request(key, bounds));
+    private void enqueue(RenderObjectKey key, AABB bounds, FrameContext frame, Record record, boolean urgent) {
+        Request existing = pending.get(key);
+        if (existing != null && !VisibilityMath.boundsChanged(existing.bounds, bounds, BOUNDS_TOLERANCE)
+                && (!urgent || existing.urgent)) return;
+        if (existing == null && pending.size() >= MAX_PENDING) return;
+        double distanceSqr = frame.cameraPosition().distanceToSqr(bounds.getCenter());
+        double priority = distanceSqr;
+        if (record != null && record.state == VisibilityState.OCCLUDED) priority -= 1_000_000_000.0;
+        if (urgent) priority -= 2_000_000_000.0;
+        Request request = new Request(key, bounds, priority, ++requestSequence, urgent);
+        pending.put(key, request);
+        queue.add(request);
+        if (queue.size() > MAX_HEAP_ENTRIES) rebuildQueue();
+    }
+
+    private void rebuildQueue() {
+        queue.clear();
+        queue.addAll(pending.values());
     }
 
     public void process(ClientLevel level, FrameContext frame, ConfigSnapshot config) {
-        int limit = config.checksPerFrame();
-        for (int checked = 0; checked < limit; checked++) {
-            Request request = queue.pollFirst();
+        frameSolidBlocks.clear();
+        boolean moving = lastProcessCamera != null && lastProcessCamera.distanceToSqr(frame.cameraPosition()) > 0.04;
+        int limit = Math.min(512, config.checksPerFrame() * (moving ? 2 : 1));
+        long start = System.nanoTime();
+        long deadline = start + config.visibilityBudgetMicros() * 1_000L;
+        int checked = 0;
+        while (checked < limit) {
+            Request request = pollLatest();
             if (request == null) break;
-            queuedKeys.remove(request.key);
-            TestResult result = testBounds(level, frame.cameraPosition(), request.bounds);
+            TestOutcome result = testBounds(level, frame.cameraPosition(), request.bounds);
             apply(request, result, frame, config);
+            checked++;
+            if (System.nanoTime() >= deadline) break;
         }
+        lastProcessed = checked;
+        lastProcessNanos = System.nanoTime() - start;
+        lastProcessCamera = frame.cameraPosition();
+
         if ((frame.frame() & 255L) == 0L) {
             long oldest = frame.frame() - Math.max(600L, config.cacheTtlFrames() * 20L);
             records.values().removeIf(record -> record.lastCheckedFrame < oldest);
         }
     }
 
-    private void apply(Request request, TestResult result, FrameContext frame, ConfigSnapshot config) {
+    private Request pollLatest() {
+        Request request;
+        while ((request = queue.poll()) != null) {
+            if (pending.get(request.key) == request) {
+                pending.remove(request.key);
+                return request;
+            }
+        }
+        return null;
+    }
+
+    private void apply(Request request, TestOutcome outcome, FrameContext frame, ConfigSnapshot config) {
         Record old = records.get(request.key);
         int occludedCount = old == null ? 0 : old.consecutiveOccluded;
         VisibilityState state = old == null ? VisibilityState.UNKNOWN : old.state;
-        if (result == TestResult.VISIBLE) {
+        OcclusionProof proof = null;
+        if (outcome.result == TestResult.VISIBLE) {
             state = VisibilityState.VISIBLE;
             occludedCount = 0;
-        } else if (result == TestResult.OCCLUDED) {
+        } else if (outcome.result == TestResult.OCCLUDED) {
             occludedCount++;
             state = occludedCount >= config.occludedConfirmations() ? VisibilityState.OCCLUDED : VisibilityState.UNKNOWN;
+            proof = outcome.proof;
         } else {
             state = VisibilityState.UNKNOWN;
             occludedCount = 0;
@@ -71,15 +117,16 @@ public final class VisibilityService {
 
         int interval = switch (state) {
             case VISIBLE -> Math.min(6, config.cacheTtlFrames());
-            case OCCLUDED -> config.cacheTtlFrames();
+            case OCCLUDED -> frame.cameraPosition().distanceToSqr(request.bounds.getCenter()) <= 1024.0
+                    ? Math.min(10, config.cacheTtlFrames()) : config.cacheTtlFrames();
             case UNKNOWN -> 2;
         };
         records.put(request.key, new Record(state, occludedCount, frame.frame(), frame.frame() + interval,
-                frame.cameraPosition(), request.bounds));
+                frame.cameraPosition(), request.bounds, proof));
     }
 
-    private static TestResult testBounds(ClientLevel level, Vec3 camera, AABB box) {
-        if (box.contains(camera)) return TestResult.VISIBLE;
+    private TestOutcome testBounds(ClientLevel level, Vec3 camera, AABB box) {
+        if (!VisibilityMath.isFinite(box) || box.contains(camera)) return TestOutcome.VISIBLE;
         Vec3 center = box.getCenter();
         double insetX = Math.min(0.05, box.getXsize() * 0.1);
         double insetY = Math.min(0.05, box.getYsize() * 0.1);
@@ -94,17 +141,18 @@ public final class VisibilityService {
                 new Vec3(maxX, minY, minZ), new Vec3(maxX, minY, maxZ),
                 new Vec3(maxX, maxY, minZ), new Vec3(maxX, maxY, maxZ)
         };
+        BlockPos[] blockers = new BlockPos[samples.length];
         boolean unknown = false;
-        for (Vec3 sample : samples) {
-            RayResult ray = traceStrongOccluders(level, camera, sample);
-            if (ray == RayResult.CLEAR) return TestResult.VISIBLE;
-            if (ray == RayResult.UNKNOWN) unknown = true;
+        for (int i = 0; i < samples.length; i++) {
+            RayTrace ray = traceStrongOccluders(level, camera, samples[i]);
+            if (ray.result == RayResult.CLEAR) return TestOutcome.VISIBLE;
+            if (ray.result == RayResult.UNKNOWN) unknown = true;
+            blockers[i] = ray.blocker;
         }
-        return unknown ? TestResult.UNKNOWN : TestResult.OCCLUDED;
+        return unknown ? TestOutcome.UNKNOWN : new TestOutcome(TestResult.OCCLUDED, new OcclusionProof(samples, blockers));
     }
 
-    /** Amanatides-Woo voxel traversal; only full visual cubes are accepted as blockers. */
-    private static RayResult traceStrongOccluders(ClientLevel level, Vec3 start, Vec3 end) {
+    private RayTrace traceStrongOccluders(ClientLevel level, Vec3 start, Vec3 end) {
         double dx = end.x - start.x, dy = end.y - start.y, dz = end.z - start.z;
         int x = floor(start.x), y = floor(start.y), z = floor(start.z);
         int endX = floor(end.x), endY = floor(end.y), endZ = floor(end.z);
@@ -129,13 +177,19 @@ public final class VisibilityService {
                 z += stepZ;
                 tMaxZ += tDeltaZ;
             }
-            if (x == endX && y == endY && z == endZ) return RayResult.CLEAR;
+            if (x == endX && y == endY && z == endZ) return RayTrace.CLEAR;
             pos.set(x, y, z);
-            if (!level.hasChunkAt(pos)) return RayResult.UNKNOWN;
-            BlockState state = level.getBlockState(pos);
-            if (state.canOcclude() && state.isSolidRender(level, pos)) return RayResult.BLOCKED;
+            if (!level.hasChunkAt(pos)) return RayTrace.UNKNOWN;
+            long packed = pos.asLong();
+            Boolean solid = frameSolidBlocks.get(packed);
+            if (solid == null) {
+                BlockState state = level.getBlockState(pos);
+                solid = state.canOcclude() && state.isSolidRender(level, pos);
+                frameSolidBlocks.put(packed, solid);
+            }
+            if (solid) return new RayTrace(RayResult.BLOCKED, pos.immutable());
         }
-        return RayResult.CLEAR;
+        return RayTrace.CLEAR;
     }
 
     private static int floor(double value) {
@@ -158,19 +212,51 @@ public final class VisibilityService {
                 case UNKNOWN -> unknown++;
             }
         }
-        return new Counts(visible, occluded, unknown, queue.size());
+        return new Counts(visible, occluded, unknown, pending.size(), lastProcessed, lastProcessNanos / 1_000L);
     }
 
     public void clear() {
         records.clear();
+        pending.clear();
         queue.clear();
-        queuedKeys.clear();
+        frameSolidBlocks.clear();
+        lastProcessCamera = null;
+        lastProcessed = 0;
+        lastProcessNanos = 0;
     }
 
-    public record Counts(int visible, int occluded, int unknown, int queued) {}
-    private record Request(RenderObjectKey key, AABB bounds) {}
+    public record Counts(int visible, int occluded, int unknown, int queued, int checked, long micros) {
+    }
+
+    private record Request(RenderObjectKey key, AABB bounds, double priority, long sequence, boolean urgent) {
+    }
+
     private record Record(VisibilityState state, int consecutiveOccluded, long lastCheckedFrame,
-                          long nextCheckFrame, Vec3 camera, AABB bounds) {}
+                          long nextCheckFrame, Vec3 camera, AABB bounds, OcclusionProof proof) {
+    }
+
+    private record OcclusionProof(Vec3[] samples, BlockPos[] blockers) {
+        private boolean stillBlocks(Vec3 camera) {
+            for (int i = 0; i < samples.length; i++) {
+                BlockPos blocker = blockers[i];
+                if (blocker == null || !VisibilityMath.segmentCrossesBlock(camera, samples[i],
+                        blocker.getX(), blocker.getY(), blocker.getZ())) return false;
+            }
+            return true;
+        }
+    }
+
+    private record TestOutcome(TestResult result, OcclusionProof proof) {
+        private static final TestOutcome VISIBLE = new TestOutcome(TestResult.VISIBLE, null);
+        private static final TestOutcome UNKNOWN = new TestOutcome(TestResult.UNKNOWN, null);
+    }
+
+    private record RayTrace(RayResult result, BlockPos blocker) {
+        private static final RayTrace CLEAR = new RayTrace(RayResult.CLEAR, null);
+        private static final RayTrace UNKNOWN = new RayTrace(RayResult.UNKNOWN, null);
+    }
+
     private enum TestResult { VISIBLE, OCCLUDED, UNKNOWN }
+
     private enum RayResult { CLEAR, BLOCKED, UNKNOWN }
 }
