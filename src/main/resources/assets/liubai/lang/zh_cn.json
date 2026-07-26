@@ -32,9 +32,9 @@
   "liubai.configuration.visibility.occlusionMode.external": "外部后端",
   "liubai.configuration.visibility.occlusionMode.off": "关闭遮挡",
   "liubai.configuration.culling.safeDistance": "安全距离",
-  "liubai.configuration.culling.safeDistance.tooltip": "摄像机附近该距离内的对象始终以完整质量渲染。",
+  "liubai.configuration.culling.safeDistance.tooltip": "摄像机附近该距离内不启用屏幕尺寸和密度降级；可靠的完整实心墙遮挡仍可生效。",
   "liubai.configuration.culling.occlusionMinDistance": "遮挡检测起始距离",
-  "liubai.configuration.culling.occlusionMinDistance.tooltip": "只有超过该距离的对象才会进入遮挡检测队列。",
+  "liubai.configuration.culling.occlusionMinDistance.tooltip": "常规遮挡检测从该距离开始；安全距离只保护屏幕尺寸和密度策略，可靠的墙后对象仍可进行遮挡检测。",
   "liubai.configuration.culling.checksPerFrame": "每帧可见性检测数",
   "liubai.configuration.culling.checksPerFrame.tooltip": "每帧最多执行的世界可见性检测数量。过高可能增加客户端主线程开销。",
   "liubai.configuration.culling.budgetMicros": "每帧遮挡检测时间预算（微秒）",
@@ -126,6 +126,7 @@
   "liubai.hud.pressure.critical": "严重",
   "liubai.hud.backend": "通用遮挡后端：%s",
   "liubai.hud.sableSafeMode": "航空学安全模式：实体 %1$s / 方块实体 %2$s / 粒子 %3$s / Flywheel %4$s",
+  "liubai.hud.sableFallback": "Sable 兼容桥不可用：已保守停用逐对象优化",
   "liubai.hud.backend.builtin": "留白内置 DDA",
   "liubai.hud.backend.entityCulling": "Entity Culling（协作模式）",
   "liubai.hud.backend.external": "外部模组",
@@ -134,8 +135,9 @@
   "liubai.hud.entityReasons": "  └ 遮挡 %1$s / 屏幕过小 %2$s / 密度预算 %3$s",
   "liubai.hud.blockEntities": "方块实体/秒：检查 %1$s / 渲染 %2$s / 跳过 %3$s（遮挡 %4$s）",
   "liubai.hud.visibility": "可见性缓存：可见 %1$s / 遮挡 %2$s / 未知 %3$s / 队列 %4$s",
-  "liubai.hud.visibilityWork": "  └ 本帧检测 %1$s / 耗时 %2$s 微秒",
+  "liubai.hud.visibilityWork": "  └ 检测 %1$s / 超时 %2$s / 耗时 %3$s 微秒",
   "liubai.hud.effects": "每秒省略：阴影 %1$s / 名称牌 %2$s / 粒子 %3$s",
   "liubai.hud.particles": "  └ 存活粒子 %1$s / 每秒接收远距离粒子 %2$s",
-  "liubai.hud.temporal": "时间 LOD：延后更新 %1$s / Flywheel 限制增强 %2$s"
+  "liubai.hud.temporal": "时间 LOD：延后更新 %1$s / Flywheel 限制增强 %2$s",
+  "liubai.hud.hooks": "Hook 已观测：实体 %1$s / 方块实体 %2$s / 粒子 %3$s / Flywheel %4$s"
 }

@@ -80,7 +80,9 @@ public final class ClientEvents {
 
         int x = 6, y = 6, line = 10;
         boolean sableSafeMode = SableCompatibility.flywheelSafeModeActive();
-        graphics.fill(2, 2, 390, sableSafeMode ? 148 : 138, 0xA0000000);
+        boolean sableFallback = SableCompatibility.conservativeFallbackActive();
+        HookStatus.Snapshot hooks = HookStatus.snapshot();
+        graphics.fill(2, 2, 430, sableSafeMode || sableFallback ? 168 : 158, 0xA0000000);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.title", state), x, y, 0xFFFFFF);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.frame",
                 decimal(frameMillis), decimal(targetMillis), integer(estimatedFps)), x, y += line, 0xD8F3FF);
@@ -88,7 +90,10 @@ public final class ClientEvents {
                 decimal(system.p95RenderMillis()), decimal(system.p99RenderMillis())), x, y += line, 0xA8C7D3);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.pressure", pressure), x, y += line, pressureColor);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.backend", backend), x, y += line, 0xB8E0FF);
-        if (sableSafeMode) {
+        if (sableFallback) {
+            graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.sableFallback"),
+                    x, y += line, 0xFFB070);
+        } else if (sableSafeMode) {
             graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.sableSafeMode",
                     stats.sableEntitiesBypassed(), stats.sableBlockEntitiesBypassed(),
                     stats.sableParticlesBypassed(), stats.sableFlywheelBypassed()), x, y += line, 0x80FFB0);
@@ -103,13 +108,16 @@ public final class ClientEvents {
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.visibility",
                 stats.visible(), stats.occluded(), stats.unknown(), stats.queued()), x, y += line, 0xD8F3FF);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.visibilityWork",
-                stats.visibilityChecks(), stats.visibilityMicros()), x, y += line, 0xA8C7D3);
+                stats.visibilityChecks(), stats.visibilityTimeouts(), stats.visibilityMicros()), x, y += line, 0xA8C7D3);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.effects",
                 stats.shadowsSkipped(), stats.nameTagsSkipped(), stats.particlesSkipped()), x, y += line, 0xD8F3FF);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.particles",
                 stats.liveParticles(), stats.particlesAccepted()), x, y += line, 0xA8C7D3);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.temporal",
-                stats.temporalUpdatesDeferred(), stats.flywheelLimiterAdjusted()), x, y + line, 0xD8F3FF);
+                stats.temporalUpdatesDeferred(), stats.flywheelLimiterAdjusted()), x, y += line, 0xD8F3FF);
+        graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.hooks",
+                mark(hooks.entity()), mark(hooks.blockEntity()), mark(hooks.particle()), mark(hooks.flywheel())),
+                x, y + line, 0xA8C7D3);
     }
 
     private static String decimal(double value) {
@@ -118,5 +126,9 @@ public final class ClientEvents {
 
     private static String integer(double value) {
         return String.format(Locale.ROOT, "%.0f", value);
+    }
+
+    private static String mark(boolean observed) {
+        return observed ? "✓" : "-";
     }
 }

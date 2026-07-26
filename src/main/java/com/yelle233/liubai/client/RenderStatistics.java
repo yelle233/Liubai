@@ -15,7 +15,7 @@ public final class RenderStatistics {
     private long[] window = new long[18];
     private long windowStartNanos = System.nanoTime();
     private Rate rate = Rate.EMPTY;
-    private VisibilityService.Counts visibility = new VisibilityService.Counts(0, 0, 0, 0, 0, 0);
+    private VisibilityService.Counts visibility = new VisibilityService.Counts(0, 0, 0, 0, 0, 0, 0);
     private int liveParticles;
 
     public void entity(RenderDecision decision) {
@@ -83,7 +83,7 @@ public final class RenderStatistics {
                 rate.sableEntitiesBypassed, rate.sableBlockEntitiesBypassed, rate.sableParticlesBypassed,
                 rate.sableFlywheelBypassed,
                 visibility.visible(), visibility.occluded(), visibility.unknown(), visibility.queued(),
-                visibility.checked(), visibility.micros(), liveParticles);
+                visibility.checked(), visibility.timedOut(), visibility.micros(), liveParticles);
     }
 
     private record Rate(int entitiesTested, int entitiesSkipped, int entitiesOccluded, int entitiesTooSmall,
@@ -107,6 +107,6 @@ public final class RenderStatistics {
                            int sableEntitiesBypassed, int sableBlockEntitiesBypassed, int sableParticlesBypassed,
                            int sableFlywheelBypassed,
                            int visible, int occluded, int unknown, int queued, int visibilityChecks,
-                           long visibilityMicros, int liveParticles) {
+                           int visibilityTimeouts, long visibilityMicros, int liveParticles) {
     }
 }

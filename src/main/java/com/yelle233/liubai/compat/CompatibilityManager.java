@@ -3,6 +3,7 @@ package com.yelle233.liubai.compat;
 import com.yelle233.liubai.Liubai;
 import com.yelle233.liubai.config.ConfigSnapshot;
 import com.yelle233.liubai.config.OcclusionMode;
+import com.yelle233.liubai.compat.iris.IrisCompatibility;
 import com.yelle233.liubai.compat.sable.SableCompatibility;
 import com.yelle233.liubai.visibility.EffectiveVisibilityBackend;
 import net.neoforged.fml.ModList;
@@ -16,6 +17,7 @@ public final class CompatibilityManager {
     private boolean flywheelLoaded;
     private boolean sableLoaded;
     private boolean aeronauticsLoaded;
+    private boolean irisLoaded;
     private String entityCullingVersion = "";
     private String createVersion = "";
     private String flywheelVersion = "";
@@ -32,6 +34,7 @@ public final class CompatibilityManager {
         flywheelLoaded = mods.isLoaded("flywheel");
         sableLoaded = mods.isLoaded("sable");
         aeronauticsLoaded = mods.isLoaded("aeronautics") || mods.isLoaded("aeronautics_bundled");
+        irisLoaded = mods.isLoaded("iris");
         entityCullingVersion = versionOf("entityculling");
         createVersion = versionOf("create");
         flywheelVersion = versionOf("flywheel");
@@ -40,6 +43,7 @@ public final class CompatibilityManager {
         detected = true;
 
         SableCompatibility.initialize(sableLoaded, aeronauticsLoaded);
+        IrisCompatibility.initialize(irisLoaded);
 
         Liubai.LOGGER.info("Liubai compatibility: Entity Culling {} {}, Create {} {}, Flywheel {} {}",
                 entityCullingLoaded, entityCullingVersion, createLoaded, createVersion, flywheelLoaded, flywheelVersion);
@@ -90,4 +94,5 @@ public final class CompatibilityManager {
     public boolean aeronauticsLoaded() { return aeronauticsLoaded; }
     public String sableVersion() { return sableVersion; }
     public String aeronauticsVersion() { return aeronauticsVersion; }
+    public boolean irisLoaded() { return irisLoaded; }
 }

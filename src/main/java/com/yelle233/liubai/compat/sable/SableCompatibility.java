@@ -18,13 +18,19 @@ import java.lang.reflect.Method;
  * All reflective discovery happens once; render hot paths use cached method handles.
  */
 public final class SableCompatibility {
+    public enum BridgeState {
+        NOT_INSTALLED,
+        AVAILABLE,
+        DETECTED_BUT_UNAVAILABLE
+    }
+
     private static MethodHandle blockEntityLookup;
     private static MethodHandle entityLookup;
     private static MethodHandle trackingEntityLookup;
     private static MethodHandle positionLookup;
     private static MethodHandle clientContainerLookup;
     private static MethodHandle loadedCountLookup;
-    private static volatile boolean available;
+    private static volatile BridgeState state = BridgeState.NOT_INSTALLED;
     private static volatile boolean aeronauticsLoaded;
     private static volatile boolean activeSubLevels;
 
@@ -34,6 +40,7 @@ public final class SableCompatibility {
     public static void initialize(boolean sableLoaded, boolean hasAeronautics) {
         aeronauticsLoaded = hasAeronautics;
         activeSubLevels = false;
+        state = sableLoaded ? BridgeState.DETECTED_BUT_UNAVAILABLE : BridgeState.NOT_INSTALLED;
         if (!sableLoaded) return;
 
         try {
@@ -74,11 +81,11 @@ public final class SableCompatibility {
             if (!containerClass.isAssignableFrom(clientContainerClass)) {
                 throw new NoSuchMethodException("Unexpected Sable client container type");
             }
-            available = true;
+            state = BridgeState.AVAILABLE;
             Liubai.LOGGER.info("Sable dynamic-sublevel compatibility bridge initialized.");
         } catch (ReflectiveOperationException | RuntimeException error) {
-            available = false;
-            Liubai.LOGGER.warn("Sable was detected but its sublevel API was not compatible; Liubai's Sable safety bridge will remain inactive.", error);
+            state = BridgeState.DETECTED_BUT_UNAVAILABLE;
+            Liubai.LOGGER.warn("Sable was detected but its sublevel API was not compatible; Liubai will conservatively bypass per-object policies for this session.", error);
         }
     }
 
@@ -89,7 +96,7 @@ public final class SableCompatibility {
 
     /** Refreshes the only frame-level query used by the Flywheel safety fallback. */
     public static void beginFrame(ClientLevel level) {
-        if (!available || level == null) {
+        if (state != BridgeState.AVAILABLE || level == null) {
             activeSubLevels = false;
             return;
         }
@@ -102,7 +109,7 @@ public final class SableCompatibility {
     }
 
     public static boolean contains(BlockEntity blockEntity) {
-        if (!available || blockEntity == null || blockEntity.getLevel() == null) return false;
+        if (state != BridgeState.AVAILABLE || blockEntity == null || blockEntity.getLevel() == null) return false;
         try {
             return (Object) blockEntityLookup.invokeExact(blockEntity) != null;
         } catch (Throwable error) {
@@ -112,7 +119,7 @@ public final class SableCompatibility {
     }
 
     public static boolean contains(Entity entity) {
-        if (!available || entity == null || entity.level() == null) return false;
+        if (state != BridgeState.AVAILABLE || entity == null || entity.level() == null) return false;
         try {
             Object tracked = (Object) trackingEntityLookup.invokeExact(entity);
             return tracked != null || (Object) entityLookup.invokeExact(entity) != null;
@@ -123,7 +130,7 @@ public final class SableCompatibility {
     }
 
     public static boolean contains(Level level, Position position) {
-        if (!available || level == null || position == null) return false;
+        if (state != BridgeState.AVAILABLE || level == null || position == null) return false;
         try {
             return (Object) positionLookup.invokeExact(level, position) != null;
         } catch (Throwable error) {
@@ -137,17 +144,27 @@ public final class SableCompatibility {
      * the safe choice is to leave Flywheel's original divisor untouched for every Visual.
      */
     public static boolean flywheelSafeModeActive() {
-        return available && aeronauticsLoaded && activeSubLevels;
+        return aeronauticsLoaded && (state == BridgeState.DETECTED_BUT_UNAVAILABLE
+                || state == BridgeState.AVAILABLE && activeSubLevels);
     }
 
     public static boolean available() {
-        return available;
+        return state == BridgeState.AVAILABLE;
+    }
+
+    /** A detected but unusable bridge cannot safely distinguish main-world objects from Plot-local objects. */
+    public static boolean conservativeFallbackActive() {
+        return state == BridgeState.DETECTED_BUT_UNAVAILABLE;
+    }
+
+    public static BridgeState state() {
+        return state;
     }
 
     private static synchronized void disableAfterFailure(Throwable error) {
-        if (!available) return;
-        available = false;
+        if (state != BridgeState.AVAILABLE) return;
+        state = BridgeState.DETECTED_BUT_UNAVAILABLE;
         activeSubLevels = false;
-        Liubai.LOGGER.warn("Sable sublevel lookup failed at runtime; disabling Liubai's compatibility bridge for this session.", error);
+        Liubai.LOGGER.warn("Sable sublevel lookup failed at runtime; Liubai will conservatively bypass per-object policies for this session.", error);
     }
 }

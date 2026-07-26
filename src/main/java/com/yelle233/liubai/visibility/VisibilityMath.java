@@ -5,7 +5,18 @@ import net.minecraft.world.phys.Vec3;
 
 /** Pure visibility helpers kept separate so safety thresholds can be regression-tested. */
 public final class VisibilityMath {
+    private static final double NEAR_CAMERA_OCCLUSION_MARGIN = 2.0;
+
     private VisibilityMath() {
+    }
+
+    /**
+     * Returns the distance at which occlusion may start. Safe Distance only
+     * protects quality-reduction policies; the first two blocks remain fully
+     * visible to avoid camera-near popping and expensive short rays.
+     */
+    public static double occlusionStartDistance(double configuredDistance) {
+        return Math.max(NEAR_CAMERA_OCCLUSION_MARGIN, configuredDistance);
     }
 
     public static boolean boundsChanged(AABB previous, AABB current, double tolerance) {

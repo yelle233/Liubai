@@ -2,6 +2,7 @@ package com.yelle233.liubai.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.yelle233.liubai.client.ClientHooks;
+import com.yelle233.liubai.client.HookStatus;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -19,6 +20,7 @@ public abstract class BlockEntityRenderDispatcherMixin {
                                                                               PoseStack poseStack,
                                                                               MultiBufferSource bufferSource,
                                                                               CallbackInfo callback) {
+        HookStatus.blockEntityObserved();
         try {
             // Avoid even asking a third-party renderer for bounds when Liubai's built-in backend is inactive.
             if (!ClientHooks.shouldInspectBlockEntities()) return;

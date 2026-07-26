@@ -27,6 +27,7 @@ public final class VisibilityService {
     private long requestSequence;
     private Vec3 lastProcessCamera;
     private int lastProcessed;
+    private int lastTimedOut;
     private long lastProcessNanos;
 
     public VisibilityState query(RenderObjectKey key, AABB bounds, FrameContext frame, ConfigSnapshot config) {
@@ -69,10 +70,18 @@ public final class VisibilityService {
         long start = System.nanoTime();
         long deadline = start + config.visibilityBudgetMicros() * 1_000L;
         int checked = 0;
+        lastTimedOut = 0;
         while (checked < limit) {
+            if (System.nanoTime() >= deadline) break;
             Request request = pollLatest();
             if (request == null) break;
-            TestOutcome result = testBounds(level, frame.cameraPosition(), request.bounds);
+            TestOutcome result = testBounds(level, frame.cameraPosition(), request.bounds, deadline);
+            if (result.result == TestResult.TIMED_OUT) {
+                defer(request);
+                lastTimedOut++;
+                checked++;
+                break;
+            }
             apply(request, result, frame, config);
             checked++;
             if (System.nanoTime() >= deadline) break;
@@ -96,6 +105,12 @@ public final class VisibilityService {
             }
         }
         return null;
+    }
+
+    private void defer(Request request) {
+        Request deferred = new Request(request.key, request.bounds, request.priority, ++requestSequence, true);
+        pending.put(deferred.key, deferred);
+        queue.add(deferred);
     }
 
     private void apply(Request request, TestOutcome outcome, FrameContext frame, ConfigSnapshot config) {
@@ -125,7 +140,8 @@ public final class VisibilityService {
                 frame.cameraPosition(), request.bounds, proof));
     }
 
-    private TestOutcome testBounds(ClientLevel level, Vec3 camera, AABB box) {
+    private TestOutcome testBounds(ClientLevel level, Vec3 camera, AABB box, long deadlineNanos) {
+        if (System.nanoTime() >= deadlineNanos) return TestOutcome.TIMED_OUT;
         if (!VisibilityMath.isFinite(box) || box.contains(camera)) return TestOutcome.VISIBLE;
         Vec3 center = box.getCenter();
         double insetX = Math.min(0.05, box.getXsize() * 0.1);
@@ -144,7 +160,8 @@ public final class VisibilityService {
         BlockPos[] blockers = new BlockPos[samples.length];
         boolean unknown = false;
         for (int i = 0; i < samples.length; i++) {
-            RayTrace ray = traceStrongOccluders(level, camera, samples[i]);
+            RayTrace ray = traceStrongOccluders(level, camera, samples[i], deadlineNanos);
+            if (ray.result == RayResult.TIMED_OUT) return TestOutcome.TIMED_OUT;
             if (ray.result == RayResult.CLEAR) return TestOutcome.VISIBLE;
             if (ray.result == RayResult.UNKNOWN) unknown = true;
             blockers[i] = ray.blocker;
@@ -152,7 +169,7 @@ public final class VisibilityService {
         return unknown ? TestOutcome.UNKNOWN : new TestOutcome(TestResult.OCCLUDED, new OcclusionProof(samples, blockers));
     }
 
-    private RayTrace traceStrongOccluders(ClientLevel level, Vec3 start, Vec3 end) {
+    private RayTrace traceStrongOccluders(ClientLevel level, Vec3 start, Vec3 end, long deadlineNanos) {
         double dx = end.x - start.x, dy = end.y - start.y, dz = end.z - start.z;
         int x = floor(start.x), y = floor(start.y), z = floor(start.z);
         int endX = floor(end.x), endY = floor(end.y), endZ = floor(end.z);
@@ -167,6 +184,7 @@ public final class VisibilityService {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 
         for (int i = 0; i < maxSteps; i++) {
+            if ((i & 7) == 0 && System.nanoTime() >= deadlineNanos) return RayTrace.TIMED_OUT;
             if (tMaxX <= tMaxY && tMaxX <= tMaxZ) {
                 x += stepX;
                 tMaxX += tDeltaX;
@@ -212,7 +230,8 @@ public final class VisibilityService {
                 case UNKNOWN -> unknown++;
             }
         }
-        return new Counts(visible, occluded, unknown, pending.size(), lastProcessed, lastProcessNanos / 1_000L);
+        return new Counts(visible, occluded, unknown, pending.size(), lastProcessed, lastTimedOut,
+                lastProcessNanos / 1_000L);
     }
 
     public void clear() {
@@ -222,10 +241,11 @@ public final class VisibilityService {
         frameSolidBlocks.clear();
         lastProcessCamera = null;
         lastProcessed = 0;
+        lastTimedOut = 0;
         lastProcessNanos = 0;
     }
 
-    public record Counts(int visible, int occluded, int unknown, int queued, int checked, long micros) {
+    public record Counts(int visible, int occluded, int unknown, int queued, int checked, int timedOut, long micros) {
     }
 
     private record Request(RenderObjectKey key, AABB bounds, double priority, long sequence, boolean urgent) {
@@ -249,14 +269,16 @@ public final class VisibilityService {
     private record TestOutcome(TestResult result, OcclusionProof proof) {
         private static final TestOutcome VISIBLE = new TestOutcome(TestResult.VISIBLE, null);
         private static final TestOutcome UNKNOWN = new TestOutcome(TestResult.UNKNOWN, null);
+        private static final TestOutcome TIMED_OUT = new TestOutcome(TestResult.TIMED_OUT, null);
     }
 
     private record RayTrace(RayResult result, BlockPos blocker) {
         private static final RayTrace CLEAR = new RayTrace(RayResult.CLEAR, null);
         private static final RayTrace UNKNOWN = new RayTrace(RayResult.UNKNOWN, null);
+        private static final RayTrace TIMED_OUT = new RayTrace(RayResult.TIMED_OUT, null);
     }
 
-    private enum TestResult { VISIBLE, OCCLUDED, UNKNOWN }
+    private enum TestResult { VISIBLE, OCCLUDED, UNKNOWN, TIMED_OUT }
 
-    private enum RayResult { CLEAR, BLOCKED, UNKNOWN }
+    private enum RayResult { CLEAR, BLOCKED, UNKNOWN, TIMED_OUT }
 }

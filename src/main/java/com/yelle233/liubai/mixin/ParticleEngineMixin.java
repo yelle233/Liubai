@@ -1,6 +1,7 @@
 package com.yelle233.liubai.mixin;
 
 import com.yelle233.liubai.client.ClientHooks;
+import com.yelle233.liubai.client.HookStatus;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.core.particles.ParticleOptions;
@@ -20,6 +21,7 @@ public abstract class ParticleEngineMixin {
     private void liubai$budgetBeforeProvider(ParticleOptions options, double x, double y, double z,
                                              double xSpeed, double ySpeed, double zSpeed,
                                              CallbackInfoReturnable<Particle> callback) {
+        HookStatus.particleObserved();
         if (ClientHooks.shouldSkipParticle(options, x, y, z)) {
             callback.setReturnValue(null);
         } else {
@@ -36,6 +38,7 @@ public abstract class ParticleEngineMixin {
 
     @Inject(method = "add", at = @At("HEAD"), cancellable = true)
     private void liubai$budgetDirectAdds(Particle particle, CallbackInfo callback) {
+        HookStatus.particleObserved();
         if (liubai$approvedCreationDepth == 0 && ClientHooks.shouldSkipParticle(particle)) callback.cancel();
     }
 }

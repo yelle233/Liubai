@@ -4,14 +4,17 @@ import com.yelle233.liubai.config.ConfigSnapshot;
 
 /** Slow, hysteretic controller. Quality drops gradually and recovers more slowly. */
 public final class FrameBudgetController {
+    private static final long DEGRADE_AFTER_NANOS = 400_000_000L;
+    private static final long RECOVER_AFTER_NANOS = 3_000_000_000L;
+    private static final long RECOVERY_COOLDOWN_NANOS = 2_000_000_000L;
     private final double[] recentSamples = new double[300];
     private double averageRenderMillis = 16.67;
     private double p95RenderMillis = 16.67;
     private double p99RenderMillis = 16.67;
     private PressureLevel pressure = PressureLevel.NORMAL;
-    private int overBudgetFrames;
-    private int underBudgetFrames;
-    private int recoveryCooldownFrames;
+    private long overBudgetSinceNanos;
+    private long underBudgetSinceNanos;
+    private long recoveryAllowedNanos;
     private long renderStartNanos;
     private int sampleCount;
     private int sampleCursor;
@@ -30,45 +33,43 @@ public final class FrameBudgetController {
         averageRenderMillis += (sample - averageRenderMillis) * 0.08;
         if (!config.adaptiveMode()) {
             pressure = PressureLevel.NORMAL;
-            overBudgetFrames = underBudgetFrames = 0;
-            recoveryCooldownFrames = 0;
+            overBudgetSinceNanos = underBudgetSinceNanos = recoveryAllowedNanos = 0;
             return;
         }
 
+        long now = System.nanoTime();
         int effectiveTargetFps = configuredFrameLimit > 0 && configuredFrameLimit < 260
                 ? Math.min(config.targetFps(), configuredFrameLimit) : config.targetFps();
         double target = 1000.0 / effectiveTargetFps;
         if (averageRenderMillis > target * 1.12) {
-            overBudgetFrames++;
-            underBudgetFrames = 0;
-            if (overBudgetFrames >= 24) {
+            if (overBudgetSinceNanos == 0) overBudgetSinceNanos = now;
+            underBudgetSinceNanos = 0;
+            if (now - overBudgetSinceNanos >= DEGRADE_AFTER_NANOS) {
                 pressure = switch (pressure) {
                     case NORMAL -> PressureLevel.HIGH;
                     case HIGH, CRITICAL -> PressureLevel.CRITICAL;
                 };
-                recoveryCooldownFrames = 180;
-                overBudgetFrames = 0;
+                recoveryAllowedNanos = now + RECOVERY_COOLDOWN_NANOS;
+                overBudgetSinceNanos = now;
             }
         } else if (averageRenderMillis < target * 0.88) {
-            if (recoveryCooldownFrames > 0) {
-                recoveryCooldownFrames--;
-                underBudgetFrames = 0;
+            overBudgetSinceNanos = 0;
+            if (now < recoveryAllowedNanos) {
+                underBudgetSinceNanos = 0;
                 return;
             }
-            underBudgetFrames++;
-            overBudgetFrames = 0;
-            if (underBudgetFrames >= 180) {
+            if (underBudgetSinceNanos == 0) underBudgetSinceNanos = now;
+            if (now - underBudgetSinceNanos >= RECOVER_AFTER_NANOS) {
                 pressure = switch (pressure) {
                     case CRITICAL -> PressureLevel.HIGH;
                     case HIGH, NORMAL -> PressureLevel.NORMAL;
                 };
-                recoveryCooldownFrames = pressure == PressureLevel.NORMAL ? 0 : 120;
-                underBudgetFrames = 0;
+                recoveryAllowedNanos = pressure == PressureLevel.NORMAL ? 0 : now + RECOVERY_COOLDOWN_NANOS;
+                underBudgetSinceNanos = 0;
             }
         } else {
-            if (recoveryCooldownFrames > 0) recoveryCooldownFrames--;
-            overBudgetFrames = Math.max(0, overBudgetFrames - 1);
-            underBudgetFrames = Math.max(0, underBudgetFrames - 1);
+            overBudgetSinceNanos = 0;
+            underBudgetSinceNanos = 0;
         }
     }
 
@@ -93,9 +94,9 @@ public final class FrameBudgetController {
     public void reset() {
         averageRenderMillis = 16.67;
         pressure = PressureLevel.NORMAL;
-        overBudgetFrames = underBudgetFrames = 0;
+        overBudgetSinceNanos = underBudgetSinceNanos = 0;
         renderStartNanos = 0;
-        recoveryCooldownFrames = 0;
+        recoveryAllowedNanos = 0;
         sampleCount = sampleCursor = 0;
         p95RenderMillis = p99RenderMillis = 16.67;
     }

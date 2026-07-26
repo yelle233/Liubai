@@ -2,6 +2,7 @@ package com.yelle233.liubai.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.yelle233.liubai.client.ClientHooks;
+import com.yelle233.liubai.client.HookStatus;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
@@ -18,6 +19,7 @@ public abstract class EntityRenderDispatcherMixin {
     @Inject(method = "shouldRender", at = @At("RETURN"), cancellable = true)
     private <E extends Entity> void liubai$earlyCull(E entity, Frustum frustum, double camX, double camY, double camZ,
                                                      CallbackInfoReturnable<Boolean> callback) {
+        HookStatus.entityObserved();
         if (callback.getReturnValueZ() && ClientHooks.shouldSkipEntity(entity, camX, camY, camZ)) callback.setReturnValue(false);
     }
 
@@ -25,6 +27,7 @@ public abstract class EntityRenderDispatcherMixin {
     private static void liubai$reduceShadow(PoseStack poseStack, MultiBufferSource buffer, Entity entity,
                                             float weight, float partialTick, LevelReader level, float size,
                                             CallbackInfo callback) {
+        HookStatus.entityObserved();
         if (ClientHooks.shouldSkipShadow(entity)) callback.cancel();
     }
 }

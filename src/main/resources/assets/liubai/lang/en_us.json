@@ -32,9 +32,9 @@
   "liubai.configuration.visibility.occlusionMode.external": "External Backend",
   "liubai.configuration.visibility.occlusionMode.off": "Occlusion Off",
   "liubai.configuration.culling.safeDistance": "Safe Distance",
-  "liubai.configuration.culling.safeDistance.tooltip": "Objects within this distance of the camera always render at full quality.",
+  "liubai.configuration.culling.safeDistance.tooltip": "Screen-size and density reduction stay disabled within this distance; reliable full-solid-wall occlusion can still apply.",
   "liubai.configuration.culling.occlusionMinDistance": "Occlusion Start Distance",
-  "liubai.configuration.culling.occlusionMinDistance.tooltip": "Only objects beyond this distance enter the occlusion check queue.",
+  "liubai.configuration.culling.occlusionMinDistance.tooltip": "Regular occlusion checks start at this distance. Safe Distance protects screen-size and density policies only, so reliably wall-hidden objects can still be checked.",
   "liubai.configuration.culling.checksPerFrame": "Visibility Checks Per Frame",
   "liubai.configuration.culling.checksPerFrame.tooltip": "Maximum world visibility checks per frame. High values can increase client-thread work.",
   "liubai.configuration.culling.budgetMicros": "Visibility Budget Per Frame (us)",
@@ -126,6 +126,7 @@
   "liubai.hud.pressure.critical": "Critical",
   "liubai.hud.backend": "Generic occlusion backend: %s",
   "liubai.hud.sableSafeMode": "Aeronautics safe mode: entities %1$s / block entities %2$s / particles %3$s / Flywheel %4$s",
+  "liubai.hud.sableFallback": "Sable bridge unavailable: per-object policies conservatively disabled",
   "liubai.hud.backend.builtin": "Liubai Built-in DDA",
   "liubai.hud.backend.entityCulling": "Entity Culling (Cooperation Mode)",
   "liubai.hud.backend.external": "External Mod",
@@ -134,8 +135,9 @@
   "liubai.hud.entityReasons": "  └ occluded %1$s / too small %2$s / density %3$s",
   "liubai.hud.blockEntities": "Block entities/s: tested %1$s / rendered %2$s / skipped %3$s (occluded %4$s)",
   "liubai.hud.visibility": "Visibility cache: visible %1$s / occluded %2$s / unknown %3$s / queue %4$s",
-  "liubai.hud.visibilityWork": "  └ checked this frame %1$s / %2$s us",
+  "liubai.hud.visibilityWork": "  └ checked %1$s / timed out %2$s / %3$s us",
   "liubai.hud.effects": "Omitted/s: shadows %1$s / name tags %2$s / particles %3$s",
   "liubai.hud.particles": "  └ live particles %1$s / distant admitted per second %2$s",
-  "liubai.hud.temporal": "Temporal LOD: deferred %1$s / Flywheel limiter strengthened %2$s"
+  "liubai.hud.temporal": "Temporal LOD: deferred %1$s / Flywheel limiter strengthened %2$s",
+  "liubai.hud.hooks": "Hooks observed: entity %1$s / block entity %2$s / particle %3$s / Flywheel %4$s"
 }

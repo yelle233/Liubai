@@ -74,7 +74,7 @@ public final class ClientConfig {
                 .translation("liubai.configuration.culling.occlusionMode")
                 .defineEnum("occlusionMode", OcclusionMode.AUTO);
         SAFE_DISTANCE = BUILDER.translation("liubai.configuration.culling.safeDistance").defineInRange("safeDistance", 8.0, 0.0, 64.0);
-        OCCLUSION_MIN_DISTANCE = BUILDER.translation("liubai.configuration.culling.occlusionMinDistance").defineInRange("occlusionMinDistance", 12.0, 4.0, 128.0);
+        OCCLUSION_MIN_DISTANCE = BUILDER.translation("liubai.configuration.culling.occlusionMinDistance").defineInRange("occlusionMinDistance", 4.0, 4.0, 128.0);
         OCCLUSION_CHECKS_PER_FRAME = BUILDER.comment("Hard cap for world-reading visibility checks per frame.")
                 .translation("liubai.configuration.culling.checksPerFrame")
                 .defineInRange("checksPerFrame", 32, 0, 512);

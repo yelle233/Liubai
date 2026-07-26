@@ -15,6 +15,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.Mob;
@@ -26,6 +27,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -46,7 +48,9 @@ public final class RenderPolicyManager {
     private final RenderStatistics statistics;
     private final Map<Object, RenderDecision> frameDecisions = new IdentityHashMap<>();
     private final Map<Object, Boolean> dynamicSubLevelObjects = new IdentityHashMap<>();
-    private final Map<Long, Integer> denseEntityCounts = new HashMap<>();
+    private final StableDensitySelector densitySelector = new StableDensitySelector();
+    private final Map<EntityType<?>, TypePolicy> entityTypePolicies = new IdentityHashMap<>();
+    private final Map<BlockEntityType<?>, TypePolicy> blockEntityTypePolicies = new IdentityHashMap<>();
     private final Map<RenderObjectKey, ScreenState> screenStates = new HashMap<>();
     private FrameContext frame = FrameContext.EMPTY;
     private ConfigSnapshot config;
@@ -61,6 +65,7 @@ public final class RenderPolicyManager {
     }
 
     public void beginFrame(FrameContext frame, ConfigSnapshot config, EffectiveVisibilityBackend visibilityBackend, int liveParticleCount) {
+        boolean configChanged = this.config != config;
         this.frame = frame;
         this.config = config;
         this.visibilityBackend = visibilityBackend;
@@ -68,11 +73,21 @@ public final class RenderPolicyManager {
         particlesAdmittedThisFrame = 0;
         frameDecisions.clear();
         dynamicSubLevelObjects.clear();
-        denseEntityCounts.clear();
+        if (configChanged) {
+            entityTypePolicies.clear();
+            blockEntityTypePolicies.clear();
+            densitySelector.clear();
+        } else if ((frame.frame() & 63L) == 0L) {
+            densitySelector.prune(frame.frame());
+        }
         if ((frame.frame() & 255L) == 0L) {
             long oldest = frame.frame() - 600L;
             screenStates.values().removeIf(state -> state.lastFrame < oldest);
         }
+    }
+
+    public void updateFrameContext(FrameContext frame) {
+        this.frame = frame;
     }
 
     public RenderDecision decide(Entity entity) {
@@ -97,36 +112,38 @@ public final class RenderPolicyManager {
     }
 
     private RenderDecision decideEntityUncached(Entity entity, RenderObjectKey key) {
-        ResourceLocation typeId = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        TypePolicy typePolicy = entityTypePolicies.computeIfAbsent(entity.getType(), this::resolveEntityTypePolicy);
+        ResourceLocation typeId = typePolicy.id;
         AABB bounds = LiubaiApi.resolveRenderBounds(entity, entity.getBoundingBoxForCulling());
-        if (!safeGenericBounds(bounds)) return new RenderDecision(false, RenderDecision.Reason.SAFE);
+        if (!safeGenericBounds(bounds)) return RenderDecision.SAFE;
         Vec3 center = bounds.getCenter();
         double distanceSqr = frame.cameraPosition().distanceToSqr(center);
-        if (distanceSqr <= config.safeDistance() * config.safeDistance() || isImportant(entity) || LiubaiApi.isForceVisible(entity)) {
-            return new RenderDecision(false, RenderDecision.Reason.SAFE);
+        boolean withinSafeDistance = distanceSqr <= config.safeDistance() * config.safeDistance();
+        if (isImportant(entity) || LiubaiApi.isForceVisible(entity)) {
+            return RenderDecision.SAFE;
         }
-        if (isDisabled(typeId, config.entityAllowlist())) {
-            return new RenderDecision(false, RenderDecision.Reason.ALLOWLISTED);
+        if (typePolicy.disabled) {
+            return RenderDecision.ALLOWLISTED;
         }
 
-        if (shouldApplyDensityLimit(entity, typeId, distanceSqr)) {
-            return new RenderDecision(true, RenderDecision.Reason.DENSITY_LIMIT);
+        if (!withinSafeDistance && shouldApplyDensityLimit(entity, typeId, distanceSqr)) {
+            return RenderDecision.DENSITY_LIMITED;
         }
 
         double radius = Math.max(0.35, Math.max(bounds.getXsize(), Math.max(bounds.getYsize(), bounds.getZsize())) * 0.5);
         double pixels = frame.projectedRadiusPixels(radius, center);
-        if (shouldSkipForScreenSize(key, pixels, distanceSqr)) {
-            return new RenderDecision(true, RenderDecision.Reason.TOO_SMALL);
+        if (!withinSafeDistance && shouldSkipForScreenSize(key, pixels, distanceSqr)) {
+            return RenderDecision.TOO_SMALL;
         }
 
-        if (visibilityBackend == EffectiveVisibilityBackend.BUILTIN
-                && distanceSqr >= config.occlusionMinDistance() * config.occlusionMinDistance()) {
+        if (canCheckOcclusion(distanceSqr)
+                && visibilityBackend == EffectiveVisibilityBackend.BUILTIN) {
             VisibilityState state = visibility.query(key, bounds, frame, config);
             if (state == VisibilityState.OCCLUDED) {
-                return new RenderDecision(true, RenderDecision.Reason.OCCLUDED);
+                return RenderDecision.OCCLUDED;
             }
         }
-        return new RenderDecision(false, RenderDecision.Reason.VISIBLE);
+        return withinSafeDistance ? RenderDecision.SAFE : RenderDecision.FULL;
     }
 
     private boolean shouldApplyDensityLimit(Entity entity, ResourceLocation typeId, double distanceSqr) {
@@ -135,10 +152,9 @@ public final class RenderPolicyManager {
                 || (!(entity instanceof ItemEntity) && !(entity instanceof ExperienceOrb))
                 || distanceSqr <= config.denseEntityDistance() * config.denseEntityDistance()) return false;
         long chunk = ChunkPos.asLong(entity.getBlockX() >> 4, entity.getBlockZ() >> 4);
-        int count = denseEntityCounts.merge(chunk, 1, Integer::sum);
         int limit = frame.pressure() == PressureLevel.CRITICAL
                 ? config.denseEntityCriticalLimit() : config.denseEntityHighLimit();
-        return count > limit;
+        return densitySelector.shouldSkip(entity.getUUID(), chunk, limit, frame.frame());
     }
 
     private boolean shouldSkipForScreenSize(RenderObjectKey key, double pixels, double distanceSqr) {
@@ -168,23 +184,24 @@ public final class RenderPolicyManager {
         if (cached != null) return cached;
 
         RenderObjectKey key = RenderObjectKey.blockEntity(blockEntity.getLevel().dimension(), blockEntity.getBlockPos().asLong());
-        ResourceLocation typeId = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType());
+        TypePolicy typePolicy = blockEntityTypePolicies.computeIfAbsent(blockEntity.getType(), this::resolveBlockEntityTypePolicy);
         AABB bounds = LiubaiApi.resolveRenderBounds(blockEntity, rendererBounds);
         RenderDecision decision;
         if (!safeGenericBounds(bounds)) {
-            decision = new RenderDecision(false, RenderDecision.Reason.SAFE);
+            decision = RenderDecision.SAFE;
         } else {
             Vec3 center = bounds.getCenter();
             double distanceSqr = frame.cameraPosition().distanceToSqr(center);
-            if (distanceSqr <= config.safeDistance() * config.safeDistance() || LiubaiApi.isForceVisible(blockEntity)) {
-                decision = new RenderDecision(false, RenderDecision.Reason.SAFE);
-            } else if (isDisabled(typeId, config.blockEntityAllowlist())) {
-                decision = new RenderDecision(false, RenderDecision.Reason.ALLOWLISTED);
-            } else if (distanceSqr >= config.occlusionMinDistance() * config.occlusionMinDistance()
+            boolean withinSafeDistance = distanceSqr <= config.safeDistance() * config.safeDistance();
+            if (LiubaiApi.isForceVisible(blockEntity)) {
+                decision = RenderDecision.SAFE;
+            } else if (typePolicy.disabled) {
+                decision = RenderDecision.ALLOWLISTED;
+            } else if (canCheckOcclusion(distanceSqr)
                     && visibility.query(key, bounds, frame, config) == VisibilityState.OCCLUDED) {
-                decision = new RenderDecision(true, RenderDecision.Reason.OCCLUDED);
+                decision = RenderDecision.OCCLUDED;
             } else {
-                decision = new RenderDecision(false, RenderDecision.Reason.VISIBLE);
+                decision = withinSafeDistance ? RenderDecision.SAFE : RenderDecision.FULL;
             }
         }
         frameDecisions.put(blockEntity, decision);
@@ -192,8 +209,17 @@ public final class RenderPolicyManager {
         return decision;
     }
 
+    private boolean canCheckOcclusion(double distanceSqr) {
+        double start = VisibilityMath.occlusionStartDistance(config.occlusionMinDistance());
+        return distanceSqr >= start * start;
+    }
+
     public boolean bypassDynamicBlockEntity(BlockEntity blockEntity) {
         if (config == null || !config.enabled() || blockEntity == null || blockEntity.getLevel() == null) return false;
+        if (SableCompatibility.conservativeFallbackActive()) {
+            statistics.sableBlockEntityBypassed();
+            return true;
+        }
         Boolean cached = dynamicSubLevelObjects.get(blockEntity);
         if (cached != null) return cached;
         boolean bypass = SableCompatibility.contains(blockEntity);
@@ -204,10 +230,12 @@ public final class RenderPolicyManager {
 
     public boolean inspectBlockEntities() {
         return config != null && config.enabled() && config.blockEntityCulling()
-                && visibilityBackend == EffectiveVisibilityBackend.BUILTIN;
+                && visibilityBackend == EffectiveVisibilityBackend.BUILTIN
+                && !SableCompatibility.conservativeFallbackActive();
     }
 
     private boolean isDynamicSubLevelEntity(Entity entity) {
+        if (SableCompatibility.conservativeFallbackActive()) return true;
         Boolean cached = dynamicSubLevelObjects.get(entity);
         if (cached != null) return cached;
         boolean bypass = SableCompatibility.contains(entity);
@@ -234,9 +262,10 @@ public final class RenderPolicyManager {
     }
 
     public boolean skipShadow(Entity entity) {
-        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
-        if (config == null || !config.enabled() || !config.reduceShadows() || isDynamicSubLevelEntity(entity) || isImportant(entity)
-                || isDisabled(id, config.entityAllowlist())) return false;
+        if (config == null || !config.enabled() || !config.reduceShadows()) return false;
+        TypePolicy typePolicy = entityTypePolicies.computeIfAbsent(entity.getType(), this::resolveEntityTypePolicy);
+        if (isDynamicSubLevelEntity(entity) || isImportant(entity)
+                || typePolicy.disabled) return false;
         double distance = config.shadowDistance();
         if (frame.pressure() == PressureLevel.HIGH) distance *= 0.75;
         if (frame.pressure() == PressureLevel.CRITICAL) distance *= 0.5;
@@ -246,9 +275,10 @@ public final class RenderPolicyManager {
     }
 
     public boolean skipNameTag(Entity entity) {
-        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
-        if (config == null || !config.enabled() || !config.reduceNameTags() || isDynamicSubLevelEntity(entity) || isImportant(entity)
-                || isDisabled(id, config.entityAllowlist())) return false;
+        if (config == null || !config.enabled() || !config.reduceNameTags()) return false;
+        TypePolicy typePolicy = entityTypePolicies.computeIfAbsent(entity.getType(), this::resolveEntityTypePolicy);
+        if (isDynamicSubLevelEntity(entity) || isImportant(entity)
+                || typePolicy.disabled) return false;
         double distance = config.nameTagDistance();
         if (frame.pressure() == PressureLevel.CRITICAL) distance *= 0.75;
         boolean skip = frame.cameraPosition().distanceToSqr(entity.position()) > distance * distance;
@@ -263,6 +293,10 @@ public final class RenderPolicyManager {
 
     public boolean skipParticle(Vec3 position) {
         if (config == null || !config.enabled() || !config.reduceParticles() || frame.pressure() == PressureLevel.NORMAL) return false;
+        if (SableCompatibility.conservativeFallbackActive()) {
+            statistics.sableParticleBypassed();
+            return false;
+        }
         if (SableCompatibility.contains(Minecraft.getInstance().level, position)) {
             statistics.sableParticleBypassed();
             return false;
@@ -290,6 +324,19 @@ public final class RenderPolicyManager {
 
     public int liveParticleCount() {
         return liveParticleCount;
+    }
+
+    private TypePolicy resolveEntityTypePolicy(EntityType<?> type) {
+        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(type);
+        return new TypePolicy(id, isDisabled(id, config.entityAllowlist()));
+    }
+
+    private TypePolicy resolveBlockEntityTypePolicy(BlockEntityType<?> type) {
+        ResourceLocation id = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(type);
+        return new TypePolicy(id, isDisabled(id, config.blockEntityAllowlist()));
+    }
+
+    private record TypePolicy(ResourceLocation id, boolean disabled) {
     }
 
     private record ScreenState(int smallFrames, boolean skipped, long lastFrame) {

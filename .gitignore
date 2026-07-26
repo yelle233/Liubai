@@ -28,6 +28,7 @@ bin/
 
 ### VS Code ###
 .vscode/
+/.gitignore
 
 ### Mac OS ###
 .DS_Store
@@ -38,3 +39,6 @@ run/
 **/src/generated/**/.cache/
 repo/
 !**/src/**/repo/
+/docs/COMPATIBILITY_AND_API.md
+/AGENTS.md
+/DEVELOPMENT_MEMORY.md
