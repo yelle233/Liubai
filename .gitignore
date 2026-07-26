@@ -39,6 +39,5 @@ run/
 **/src/generated/**/.cache/
 repo/
 !**/src/**/repo/
-/docs/COMPATIBILITY_AND_API.md
 /AGENTS.md
 /DEVELOPMENT_MEMORY.md
