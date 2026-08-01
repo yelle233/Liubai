@@ -6,7 +6,7 @@ license="${mod_license}"
 modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
-authors="Yelle233"
+authors="yelle233"
 logoFile="logo.png"
 description='''
 Liubai is a client-side render optimizer for large technical bases.
