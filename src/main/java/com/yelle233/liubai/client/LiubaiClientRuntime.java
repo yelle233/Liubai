@@ -19,6 +19,7 @@ public final class LiubaiClientRuntime {
         NeoForge.EVENT_BUS.register(new ClientEvents(container));
         modEventBus.addListener(LiubaiClientRuntime::clientSetup);
         modEventBus.addListener(LiubaiClientRuntime::configChanged);
+        modEventBus.addListener(LiubaiKeyMappings::register);
     }
 
     private static void clientSetup(FMLClientSetupEvent event) {

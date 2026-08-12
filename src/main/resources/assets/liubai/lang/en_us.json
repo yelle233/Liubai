@@ -1,6 +1,6 @@
 {
-  "liubai.menu.config": "Liubai Settings",
-  "liubai.menu.config.tooltip": "Open Liubai render optimization settings",
+  "key.categories.liubai": "Liubai",
+  "key.liubai.open_config": "Open Liubai Settings",
 
   "liubai.configuration.title": "Liubai Settings",
   "liubai.configuration.section.liubai.client.toml": "Liubai Client Configuration",

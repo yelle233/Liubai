@@ -3,13 +3,10 @@ package com.yelle233.liubai.client;
 import com.yelle233.liubai.compat.sable.SableCompatibility;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.network.chat.Component;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
-import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderNameTagEvent;
@@ -26,14 +23,12 @@ public final class ClientEvents {
     }
 
     @SubscribeEvent
-    public void onScreenInitialized(ScreenEvent.Init.Post event) {
-        if (!(event.getScreen() instanceof PauseScreen pauseScreen) || !pauseScreen.showsPauseMenu()) return;
-        Component label = Component.translatable("liubai.menu.config");
-        Button button = Button.builder(label, pressed -> Minecraft.getInstance().setScreen(new ConfigurationScreen(container, pauseScreen)))
-                .bounds(pauseScreen.width - 84, 8, 76, 20)
-                .tooltip(Tooltip.create(Component.translatable("liubai.menu.config.tooltip")))
-                .build();
-        event.addListener(button);
+    public void onClientTick(ClientTickEvent.Post event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen != null) return;
+        if (LiubaiKeyMappings.OPEN_CONFIG.consumeClick()) {
+            minecraft.setScreen(new ConfigurationScreen(container, null));
+        }
     }
 
     @SubscribeEvent
