@@ -1,6 +1,6 @@
 {
-  "liubai.menu.config": "留白设置",
-  "liubai.menu.config.tooltip": "打开留白渲染优化设置",
+  "key.categories.liubai": "留白",
+  "key.liubai.open_config": "打开留白设置",
 
   "liubai.configuration.title": "留白设置",
   "liubai.configuration.section.liubai.client.toml": "留白客户端配置",

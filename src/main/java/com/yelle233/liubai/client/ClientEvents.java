@@ -3,13 +3,9 @@ package com.yelle233.liubai.client;
 import com.yelle233.liubai.compat.ValkyrienCompatibility;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.RenderNameTagEvent;
-import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -18,14 +14,13 @@ import java.util.Locale;
 
 public final class ClientEvents {
     @SubscribeEvent
-    public void onScreenInitialized(ScreenEvent.Init.Post event) {
-        if (!(event.getScreen() instanceof PauseScreen pauseScreen)) return;
-        Component label = Component.translatable("liubai.menu.config");
-        Button button = Button.builder(label, pressed -> Minecraft.getInstance().setScreen(new LiubaiConfigScreen(pauseScreen)))
-                .bounds(pauseScreen.width - 84, 8, 76, 20)
-                .tooltip(Tooltip.create(Component.translatable("liubai.menu.config.tooltip")))
-                .build();
-        event.addListener(button);
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen != null) return;
+        if (LiubaiKeyMappings.OPEN_CONFIG.consumeClick()) {
+            minecraft.setScreen(new LiubaiConfigScreen(null));
+        }
     }
 
     @SubscribeEvent
