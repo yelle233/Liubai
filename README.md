@@ -4,6 +4,13 @@
 
 ## 简体中文
 
+### AI 制作声明
+
+[![AI 辅助制作](https://img.shields.io/badge/AI-OpenAI%20Codex%20辅助制作-10A37F?style=for-the-badge&logo=openai&logoColor=white)](#ai-制作声明)
+
+> [!IMPORTANT]
+> **AI 制作声明：本项目采用生成式 AI 参与设计、编码、UI 改进、文档编写与测试。** AI 生成或修改的内容由项目维护者审阅、验证并承担最终维护责任。
+
 留白（Liubai）是纯客户端自适应渲染预算模组，主要改善大型基地和大量可见动态对象场景的客户端渲染压力。
 
 留白不会优化服务器 TPS，也不会停止实体 AI、红石、配方、机器逻辑或服务端 Tick。
@@ -25,7 +32,7 @@
 - Sable 2.0.3 / Create Aeronautics 1.3.0 动态子世界安全模式；兼容桥失效时默认停用无法安全归属的逐对象策略；
 - Iris 公开 API 阴影 Pass 保护，阴影相机阶段保守放行实体和方块实体；
 - 稳定的掉落物/经验球密度集合、类型策略缓存，以及降频采样的粒子数量和 HUD 可见性统计；
-- 中英文配置界面、ESC 快捷按钮和详细性能 HUD；HUD 可显示 DDA 超时和本会话实际观测到的 Mixin Hook；
+- 中英文配置界面、默认按 `L` 打开的可重绑定设置快捷键和详细性能 HUD；HUD 可显示 DDA 超时和本会话实际观测到的 Mixin Hook；
 - 未知版本、缺失模组和适配失败时自动回退。
 
 ### Entity Culling 协作
@@ -66,6 +73,13 @@ Sable 2.0.3 / Create Aeronautics 1.3.0 存在时，留白会保守绕过动态�
 
 ## English
 
+### AI Assistance Disclosure
+
+[![AI Assisted](https://img.shields.io/badge/AI-OpenAI%20Codex%20Assisted-10A37F?style=for-the-badge&logo=openai&logoColor=white)](#ai-assistance-disclosure)
+
+> [!IMPORTANT]
+> **AI assistance disclosure: Generative AI was used in the design, coding, UI improvements, documentation, and testing of this project.** AI-generated or AI-modified content is reviewed and verified by the project maintainer, who retains final responsibility for maintenance.
+
 Liubai is a client-only adaptive rendering-budget mod designed primarily to reduce client-side rendering pressure in large bases and scenes with many visible dynamic objects.
 
 Liubai does not improve server TPS or stop entity AI, redstone, recipes, machine logic, or server ticks.
@@ -87,7 +101,7 @@ Liubai does not improve server TPS or stop entity AI, redstone, recipes, machine
 - Provides a dynamic-subworld safety mode for Sable 2.0.3 / Create Aeronautics 1.3.0; if the compatibility bridge fails, per-object policies that cannot be assigned safely are disabled by default;
 - Uses the public Iris API to protect shadow passes, conservatively allowing entities and block entities during the shadow-camera stage;
 - Keeps stable density selections for dropped items and experience orbs, caches type policies, and samples particle counts and HUD visibility statistics at reduced frequency;
-- Includes Chinese and English configuration screens, an ESC-menu shortcut, and a detailed performance HUD that can show DDA timeouts and Mixin hooks actually observed in the current session;
+- Includes Chinese and English configuration screens, a rebindable settings shortcut mapped to `L` by default, and a detailed performance HUD that can show DDA timeouts and Mixin hooks actually observed in the current session;
 - Falls back safely when versions are unknown, optional mods are missing, or an integration fails.
 
 ### Working with Entity Culling
