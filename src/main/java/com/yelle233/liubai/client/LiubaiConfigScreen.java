@@ -47,16 +47,6 @@ public final class LiubaiConfigScreen extends Screen {
     protected void init() {
         rows.clear();
         scroll = 0;
-        if (page == Page.ROOT) {
-            addRenderableWidget(Button.builder(
-                            Component.translatable("liubai.configuration.section.liubai.client.toml"),
-                            button -> minecraft.setScreen(new LiubaiConfigScreen(this, Page.CATEGORIES)))
-                    .bounds(width / 2 - CONTENT_WIDTH / 2, 38, CONTENT_WIDTH, 20)
-                    .tooltip(Tooltip.create(Component.translatable("liubai.configuration.client.tooltip")))
-                    .build());
-            addDoneButton();
-            return;
-        }
         if (page == Page.CATEGORIES) {
             int y = 32;
             for (Page category : CATEGORIES) {
@@ -151,6 +141,7 @@ public final class LiubaiConfigScreen extends Screen {
         Button button = Button.builder(booleanValue(value.get()), pressed -> {
             value.set(!value.get());
             pressed.setMessage(booleanValue(value.get()));
+            refreshRuntimeConfig();
         }).bounds(0, 0, 155, 20).tooltip(tooltip(key)).build();
         rows.add(new Row(Component.translatable(key), button, () -> { }, () -> {
             value.set((Boolean) value.getDefault());
@@ -163,6 +154,7 @@ public final class LiubaiConfigScreen extends Screen {
             OcclusionMode[] modes = OcclusionMode.values();
             value.set(modes[(value.get().ordinal() + 1) % modes.length]);
             pressed.setMessage(value.get().getTranslatedName());
+            refreshRuntimeConfig();
         }).bounds(0, 0, 155, 20).tooltip(tooltip(key)).build();
         rows.add(new Row(Component.translatable(key), button, () -> { }, () -> {
             value.set(OcclusionMode.AUTO);
@@ -237,6 +229,8 @@ public final class LiubaiConfigScreen extends Screen {
 
     private void resetAll() {
         rows.forEach(row -> row.reset.run());
+        commitRows();
+        refreshRuntimeConfig();
     }
 
     private void commitRows() {
@@ -245,16 +239,20 @@ public final class LiubaiConfigScreen extends Screen {
 
     private void leavePage() {
         commitRows();
-        if (page == Page.ROOT) {
+        refreshRuntimeConfig();
+        if (page == Page.CATEGORIES) {
             ClientConfig.SPEC.save();
-            LiubaiClientSystem.INSTANCE.refreshConfig();
         }
         if (minecraft != null) minecraft.setScreen(parent);
     }
 
+    private static void refreshRuntimeConfig() {
+        LiubaiClientSystem.INSTANCE.refreshConfig();
+    }
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (page == Page.ROOT || page == Page.CATEGORIES) return super.mouseScrolled(mouseX, mouseY, delta);
+        if (page == Page.CATEGORIES) return super.mouseScrolled(mouseX, mouseY, delta);
         scroll = Math.max(0, Math.min(maxScroll, scroll - (int) Math.signum(delta) * ROW_HEIGHT * 3));
         layoutRows();
         return true;
@@ -265,7 +263,7 @@ public final class LiubaiConfigScreen extends Screen {
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
         graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
-        if (page == Page.ROOT || page == Page.CATEGORIES) return;
+        if (page == Page.CATEGORIES) return;
         for (int i = 0; i < rows.size(); i++) {
             int y = 40 - scroll + i * ROW_HEIGHT;
             if (y < 30 || y > height - 44) continue;
@@ -279,7 +277,6 @@ public final class LiubaiConfigScreen extends Screen {
     }
 
     private enum Page {
-        ROOT("liubai.configuration.title"),
         CATEGORIES("liubai.configuration.section.liubai.client.toml.title"),
         GENERAL("liubai.configuration.general"),
         CULLING("liubai.configuration.culling"),
@@ -412,6 +409,7 @@ public final class LiubaiConfigScreen extends Screen {
             }
             if (invalid) return;
             value.set(new ArrayList<>(next));
+            LiubaiClientSystem.INSTANCE.refreshConfig();
             minecraft.setScreen(parent);
         }
 
