@@ -1,0 +1,30 @@
+{
+	"schemaVersion": 1,
+	"id": "liubai",
+	"version": "${version}",
+	"name": "留白 / Liubai",
+	"description": "A physical-client render budget optimizer for Minecraft 1.21.1.",
+	"authors": [
+		"Yelle233"
+	],
+	"license": "MIT",
+	"icon": "assets/liubai/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.yelle233.liubai.Liubai"
+		]
+	},
+	"mixins": [
+		{
+			"config": "liubai.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

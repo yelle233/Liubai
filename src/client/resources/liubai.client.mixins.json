@@ -1,0 +1,16 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.yelle233.liubai.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "EntityRenderDispatcherMixin",
+    "EntityRendererMixin",
+    "GameRendererMixin",
+    "BlockEntityRenderDispatcherMixin",
+    "ParticleEngineMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
