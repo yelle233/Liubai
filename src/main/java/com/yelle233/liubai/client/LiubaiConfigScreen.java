@@ -87,6 +87,7 @@ public final class LiubaiConfigScreen extends Screen {
             case CULLING -> {
                 addBoolean("liubai.configuration.culling.entities", ClientConfig.ENTITY_CULLING);
                 addBoolean("liubai.configuration.culling.blockEntities", ClientConfig.BLOCK_ENTITY_CULLING);
+                addBoolean("liubai.configuration.culling.spectatorMode", ClientConfig.CULL_IN_SPECTATOR_MODE);
                 addBoolean("liubai.configuration.culling.occlusion", ClientConfig.OCCLUSION_CULLING);
                 addEnum("liubai.configuration.culling.occlusionMode", ClientConfig.OCCLUSION_MODE);
                 addDouble("liubai.configuration.culling.safeDistance", ClientConfig.SAFE_DISTANCE, 8.0, 0.0, 64.0);

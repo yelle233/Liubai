@@ -14,6 +14,7 @@ public final class ClientConfig {
 
     public static final ForgeConfigSpec.BooleanValue ENTITY_CULLING;
     public static final ForgeConfigSpec.BooleanValue BLOCK_ENTITY_CULLING;
+    public static final ForgeConfigSpec.BooleanValue CULL_IN_SPECTATOR_MODE;
     public static final ForgeConfigSpec.BooleanValue OCCLUSION_CULLING;
     public static final ForgeConfigSpec.EnumValue<OcclusionMode> OCCLUSION_MODE;
     public static final ForgeConfigSpec.DoubleValue SAFE_DISTANCE;
@@ -67,6 +68,9 @@ public final class ClientConfig {
         BUILDER.translation("liubai.configuration.culling").push("culling");
         ENTITY_CULLING = BUILDER.translation("liubai.configuration.culling.entities").define("entities", true);
         BLOCK_ENTITY_CULLING = BUILDER.translation("liubai.configuration.culling.blockEntities").define("blockEntities", true);
+        CULL_IN_SPECTATOR_MODE = BUILDER.comment("Allow Liubai to skip rendering while the local player is in spectator mode.")
+                .translation("liubai.configuration.culling.spectatorMode")
+                .define("spectatorMode", false);
         OCCLUSION_CULLING = BUILDER.comment("Cull objects only after repeated full-solid-block occlusion checks.")
                 .translation("liubai.configuration.culling.occlusion")
                 .define("occlusion", true);
