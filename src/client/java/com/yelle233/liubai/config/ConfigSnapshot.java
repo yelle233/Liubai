@@ -10,6 +10,7 @@ public record ConfigSnapshot(
         boolean adaptiveMode,
         boolean entityCulling,
         boolean blockEntityCulling,
+        boolean cullInSpectatorMode,
         boolean occlusionCulling,
         OcclusionMode occlusionMode,
         double safeDistance,
@@ -45,7 +46,7 @@ public record ConfigSnapshot(
 ) {
     public static ConfigSnapshot read() {
         ClientConfig c = ClientConfig.get();
-        return new ConfigSnapshot(c.enabled,c.targetFps,c.adaptiveMode,c.entityCulling,c.blockEntityCulling,c.occlusionCulling,c.occlusionMode,
+        return new ConfigSnapshot(c.enabled,c.targetFps,c.adaptiveMode,c.entityCulling,c.blockEntityCulling,c.cullInSpectatorMode,c.occlusionCulling,c.occlusionMode,
                 c.safeDistance,c.occlusionMinDistance,c.checksPerFrame,c.visibilityBudgetMicros,c.occludedConfirmations,c.cacheTtlFrames,c.minimumProjectedRadius,
                 c.screenSpaceLod,c.temporalLod,c.maxTemporalInterval,c.denseVanillaEntities,c.denseEntityDistance,c.denseEntityHighLimit,c.denseEntityCriticalLimit,
                 c.reduceShadows,c.shadowDistance,c.reduceNameTags,c.nameTagDistance,c.reduceParticles,c.particleDistance,c.particleSoftLimit,c.particleHighBudget,c.particleCriticalBudget,

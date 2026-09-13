@@ -117,6 +117,7 @@ public final class LiubaiConfigScreen extends Screen {
             case CULLING -> {
                 result.add(bool("culling.entities", () -> c.entityCulling, v -> c.entityCulling = v));
                 result.add(bool("culling.blockEntities", () -> c.blockEntityCulling, v -> c.blockEntityCulling = v));
+                result.add(bool("culling.spectatorMode", () -> c.cullInSpectatorMode, v -> c.cullInSpectatorMode = v));
                 result.add(bool("culling.occlusion", () -> c.occlusionCulling, v -> c.occlusionCulling = v));
                 result.add(new EnumOption("culling.occlusionMode", () -> c.occlusionMode, v -> c.occlusionMode = v));
                 result.add(decimal("culling.safeDistance", () -> c.safeDistance, v -> c.safeDistance = v, 0, 64));

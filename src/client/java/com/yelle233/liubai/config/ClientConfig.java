@@ -14,7 +14,7 @@ import java.util.Set;
 /** Lightweight Fabric client configuration persisted as JSON. */
 public final class ClientConfig {
     public boolean enabled = true; public int targetFps = 60; public boolean adaptiveMode = true;
-    public boolean entityCulling = true; public boolean blockEntityCulling = true; public boolean occlusionCulling = true;
+    public boolean entityCulling = true; public boolean blockEntityCulling = true; public boolean cullInSpectatorMode = false; public boolean occlusionCulling = true;
     public OcclusionMode occlusionMode = OcclusionMode.AUTO; public double safeDistance = 8; public double occlusionMinDistance = 4;
     public int checksPerFrame = 32; public int visibilityBudgetMicros = 900; public int occludedConfirmations = 2; public int cacheTtlFrames = 30;
     public double minimumProjectedRadius = 1.25; public boolean screenSpaceLod = true; public boolean temporalLod = true; public int maxTemporalInterval = 8;
