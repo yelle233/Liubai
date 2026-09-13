@@ -87,9 +87,9 @@ public final class LiubaiConfigScreen extends Screen {
 
     private void scroll(int direction) { firstRow += direction; rebuildWidgets(); }
 
-    @Override public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
-        if (page != null && vertical != 0) { scroll(vertical > 0 ? -1 : 1); return true; }
-        return super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
+    @Override public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (page != null && delta != 0) { scroll(delta > 0 ? -1 : 1); return true; }
+        return super.mouseScrolled(mouseX, mouseY, delta);
     }
 
     private void closePage() { ClientConfig.save(); LiubaiClientSystem.INSTANCE.refreshConfig(); minecraft.setScreen(parent); }
@@ -148,6 +148,11 @@ public final class LiubaiConfigScreen extends Screen {
                 result.add(integer("effects.particleHighBudget", () -> c.particleHighBudget, v -> c.particleHighBudget = v, 16, 4096));
                 result.add(integer("effects.particleCriticalBudget", () -> c.particleCriticalBudget, v -> c.particleCriticalBudget = v, 8, 4096));
             }
+            case FLYWHEEL -> {
+                result.add(bool("flywheel.adaptiveLimiter", () -> c.flywheelAdaptiveLimiter, v -> c.flywheelAdaptiveLimiter = v));
+                result.add(integer("flywheel.highMultiplier", () -> c.flywheelHighMultiplier, v -> c.flywheelHighMultiplier = v, 1, 8));
+                result.add(integer("flywheel.criticalMultiplier", () -> c.flywheelCriticalMultiplier, v -> c.flywheelCriticalMultiplier = v, 1, 12));
+            }
             case COMPATIBILITY -> {
                 result.add(new ListOption("compatibility.entityAllowlist", c.entityAllowlist));
                 result.add(new ListOption("compatibility.blockEntityAllowlist", c.blockEntityAllowlist));
@@ -168,7 +173,7 @@ public final class LiubaiConfigScreen extends Screen {
 
     private enum Page {
         GENERAL("liubai.configuration.general"), CULLING("liubai.configuration.culling"), LOD("liubai.configuration.lod"),
-        EFFECTS("liubai.configuration.effects"),
+        EFFECTS("liubai.configuration.effects"), FLYWHEEL("liubai.configuration.flywheel"),
         COMPATIBILITY("liubai.configuration.compatibility"), DEBUG("liubai.configuration.debug");
         private final String key; Page(String key) { this.key = key; }
     }

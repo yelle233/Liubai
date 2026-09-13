@@ -21,10 +21,11 @@ public final class ClientConfig {
     public boolean denseVanillaEntities = true; public double denseEntityDistance = 32; public int denseEntityHighLimit = 24; public int denseEntityCriticalLimit = 12;
     public boolean reduceShadows = true; public double shadowDistance = 24; public boolean reduceNameTags = true; public double nameTagDistance = 48;
     public boolean reduceParticles = true; public double particleDistance = 4.0; public int particleSoftLimit = 4096; public int particleHighBudget = 256; public int particleCriticalBudget = 128;
+    public boolean flywheelAdaptiveLimiter = true; public int flywheelHighMultiplier = 2; public int flywheelCriticalMultiplier = 3;
     public boolean showHud = false;
     public Set<String> entityAllowlist = new LinkedHashSet<>(Set.of("minecraft:player","minecraft:ender_dragon","minecraft:wither","minecraft:tnt","minecraft:leash_knot","minecraft:lightning_bolt"));
     public Set<String> blockEntityAllowlist = new LinkedHashSet<>(Set.of("minecraft:beacon","minecraft:end_gateway","minecraft:end_portal","minecraft:structure_block","minecraft:conduit"));
-    public Set<String> disabledNamespaces = new LinkedHashSet<>();
+    public Set<String> disabledNamespaces = new LinkedHashSet<>(Set.of("create", "flywheel"));
 
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("liubai-client.json");
     private static ClientConfig INSTANCE;

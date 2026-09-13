@@ -4,7 +4,6 @@ import com.yelle233.liubai.Liubai;
 import com.yelle233.liubai.config.ConfigSnapshot;
 import com.yelle233.liubai.config.OcclusionMode;
 import com.yelle233.liubai.compat.iris.IrisCompatibility;
-import com.yelle233.liubai.compat.sable.SableCompatibility;
 import com.yelle233.liubai.visibility.EffectiveVisibilityBackend;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -13,10 +12,14 @@ public final class CompatibilityManager {
 
     private boolean detected;
     private boolean entityCullingLoaded;
-    private boolean sableLoaded;
+    private boolean createLoaded;
+    private boolean flywheelLoaded;
+    private boolean valkyrienskiesLoaded;
     private boolean irisLoaded;
     private String entityCullingVersion = "";
-    private String sableVersion = "";
+    private String createVersion = "";
+    private String flywheelVersion = "";
+    private String valkyrienskiesVersion = "";
 
     private CompatibilityManager() {
     }
@@ -24,22 +27,33 @@ public final class CompatibilityManager {
     public void detect() {
         FabricLoader mods = FabricLoader.getInstance();
         entityCullingLoaded = mods.isModLoaded("entityculling");
-        sableLoaded = mods.isModLoaded("sable");
+        createLoaded = mods.isModLoaded("create");
+        flywheelLoaded = mods.isModLoaded("flywheel");
+        valkyrienskiesLoaded = mods.isModLoaded("valkyrienskies");
         irisLoaded = mods.isModLoaded("iris");
         entityCullingVersion = versionOf("entityculling");
-        sableVersion = versionOf("sable");
+        createVersion = versionOf("create");
+        flywheelVersion = versionOf("flywheel");
+        valkyrienskiesVersion = versionOf("valkyrienskies");
         detected = true;
 
-        SableCompatibility.initialize(sableLoaded);
+        ValkyrienCompatibility.initialize(valkyrienskiesLoaded);
         IrisCompatibility.initialize(irisLoaded);
 
-        Liubai.LOGGER.info("Liubai Fabric compatibility: Entity Culling {} {}, Iris {}, Sable {} {}",
-                entityCullingLoaded, entityCullingVersion, irisLoaded, sableLoaded, sableVersion);
+        Liubai.LOGGER.info("Liubai Fabric compatibility: Entity Culling {} {}, Iris {}, Create {} {}, Flywheel {} {}, Valkyrien Skies {} {}",
+                entityCullingLoaded, entityCullingVersion, irisLoaded, createLoaded, createVersion,
+                flywheelLoaded, flywheelVersion, valkyrienskiesLoaded, valkyrienskiesVersion);
         if (entityCullingLoaded) {
             Liubai.LOGGER.info("Entity Culling detected: AUTO mode delegates generic occlusion and disables Liubai's DDA queue.");
         }
-        if (sableLoaded) {
-            Liubai.LOGGER.info("Sable {} detected. Dynamic sublevels will bypass Liubai's main-world per-object policies.", sableVersion);
+        if (createLoaded && !supportsAdaptiveFlywheelLimiter()) {
+            Liubai.LOGGER.warn("Create {} / Flywheel {} is outside the verified Create Fabric 6.0.8 / Flywheel 1.0.5 line; adaptive Flywheel limiting remains inactive.",
+                    createVersion, flywheelVersion);
+        } else if (supportsAdaptiveFlywheelLimiter()) {
+            Liubai.LOGGER.info("Adaptive Flywheel limiter enabled for Create Fabric {} / Flywheel {}.", createVersion, flywheelVersion);
+        }
+        if (valkyrienskiesLoaded) {
+            Liubai.LOGGER.info("Valkyrien Skies {} detected. Ship-managed objects will bypass Liubai's main-world per-object policies.", valkyrienskiesVersion);
         }
     }
 
@@ -63,7 +77,15 @@ public final class CompatibilityManager {
 
     public boolean entityCullingLoaded() { return entityCullingLoaded; }
     public String entityCullingVersion() { return entityCullingVersion; }
-    public boolean sableLoaded() { return sableLoaded; }
-    public String sableVersion() { return sableVersion; }
+    public boolean supportsAdaptiveFlywheelLimiter() {
+        return detected && createLoaded && flywheelLoaded
+                && createVersion.startsWith("6.0.8") && flywheelVersion.startsWith("1.0.5");
+    }
+    public boolean createLoaded() { return createLoaded; }
+    public String createVersion() { return createVersion; }
+    public boolean flywheelLoaded() { return flywheelLoaded; }
+    public String flywheelVersion() { return flywheelVersion; }
+    public boolean valkyrienskiesLoaded() { return valkyrienskiesLoaded; }
+    public String valkyrienskiesVersion() { return valkyrienskiesVersion; }
     public boolean irisLoaded() { return irisLoaded; }
 }

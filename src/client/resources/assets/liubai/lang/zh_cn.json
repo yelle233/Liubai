@@ -92,6 +92,16 @@
   "liubai.configuration.effects.particleCriticalBudget": "严重压力每帧远距离粒子预算",
   "liubai.configuration.effects.particleCriticalBudget.tooltip": "严重压力下每个渲染帧最多接收的远距离新粒子数量。",
 
+  "liubai.configuration.flywheel": "Create / Flywheel 协作",
+  "liubai.configuration.flywheel.button": "Create / Flywheel 协作",
+  "liubai.configuration.flywheel.tooltip": "控制对已核验 Create Fabric 版本所带 Flywheel Visual 的自适应更新限频。",
+  "liubai.configuration.flywheel.adaptiveLimiter": "自适应 Flywheel 更新限制",
+  "liubai.configuration.flywheel.adaptiveLimiter.tooltip": "在高压力下增强 Flywheel 自带的距离更新限制；只降低远距离 Visual 更新频率，不停止机器逻辑。仅对 Create Fabric 6.0.8 / Flywheel 1.0.5 生效。",
+  "liubai.configuration.flywheel.highMultiplier": "高压力更新间隔倍率",
+  "liubai.configuration.flywheel.highMultiplier.tooltip": "高压力时，将远距离 Flywheel Visual 原有更新间隔乘以该数值。",
+  "liubai.configuration.flywheel.criticalMultiplier": "严重压力更新间隔倍率",
+  "liubai.configuration.flywheel.criticalMultiplier.tooltip": "严重压力时，将远距离 Flywheel Visual 原有更新间隔乘以该数值；最终间隔不超过 31 帧。",
+
   "liubai.configuration.compatibility": "兼容性与白名单",
   "liubai.configuration.compatibility.button": "兼容性与白名单",
   "liubai.configuration.compatibility.tooltip": "保护具有特殊渲染边界的对象，并按模组命名空间关闭剔除。",
@@ -121,7 +131,8 @@
   "liubai.hud.pressure.high": "高",
   "liubai.hud.pressure.critical": "严重",
   "liubai.hud.backend": "通用遮挡后端：%s",
-  "liubai.hud.sableFallback": "Sable 兼容桥不可用：已保守停用逐对象优化",
+  "liubai.hud.valkyrienFallback": "Valkyrien Skies 兼容桥不可用：已保守停用逐对象优化",
+  "liubai.hud.valkyrienSafeMode": "VS 船体保护/秒：实体 %1$s / 方块实体 %2$s / 粒子 %3$s / Flywheel %4$s",
   "liubai.hud.backend.builtin": "留白内置 DDA",
   "liubai.hud.backend.entityCulling": "Entity Culling（协作模式）",
   "liubai.hud.backend.external": "外部模组",
@@ -133,6 +144,6 @@
   "liubai.hud.visibilityWork": "  └ 检测 %1$s / 超时 %2$s / 耗时 %3$s 微秒",
   "liubai.hud.effects": "每秒省略：阴影 %1$s / 名称牌 %2$s / 粒子 %3$s",
   "liubai.hud.particles": "  └ 存活粒子 %1$s / 每秒接收远距离粒子 %2$s",
-  "liubai.hud.temporal": "时间 LOD：延后更新 %1$s",
-  "liubai.hud.hooks": "Hook 已观测：实体 %1$s / 方块实体 %2$s / 粒子 %3$s"
+  "liubai.hud.temporal": "时间 LOD：延后更新 %1$s / Flywheel 限制增强 %2$s",
+  "liubai.hud.hooks": "Hook 已观测：实体 %1$s / 方块实体 %2$s / 粒子 %3$s / Flywheel %4$s"
 }

@@ -1,6 +1,6 @@
 package com.yelle233.liubai.client;
 
-import com.yelle233.liubai.compat.sable.SableCompatibility;
+import com.yelle233.liubai.compat.ValkyrienCompatibility;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -42,9 +42,10 @@ public final class ClientEvents {
         };
 
         int x = 6, y = 6, line = 10;
-        boolean sableFallback = SableCompatibility.conservativeFallbackActive();
+        boolean valkyrienSafeMode = ValkyrienCompatibility.ownerlessSafeModeActive();
+        boolean valkyrienFallback = ValkyrienCompatibility.conservativeFallbackActive();
         HookStatus.Snapshot hooks = HookStatus.snapshot();
-        graphics.fill(2, 2, 430, sableFallback ? 168 : 158, 0xA0000000);
+        graphics.fill(2, 2, 430, valkyrienSafeMode || valkyrienFallback ? 168 : 158, 0xA0000000);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.title", state), x, y, 0xFFFFFF);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.frame",
                 decimal(frameMillis), decimal(targetMillis), integer(estimatedFps)), x, y += line, 0xD8F3FF);
@@ -52,8 +53,12 @@ public final class ClientEvents {
                 decimal(system.p95RenderMillis()), decimal(system.p99RenderMillis())), x, y += line, 0xA8C7D3);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.pressure", pressure), x, y += line, pressureColor);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.backend", backend), x, y += line, 0xB8E0FF);
-        if (sableFallback) {
-            graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.sableFallback"), x, y += line, 0xFFB070);
+        if (valkyrienFallback) {
+            graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.valkyrienFallback"), x, y += line, 0xFFB070);
+        } else if (valkyrienSafeMode) {
+            graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.valkyrienSafeMode",
+                    stats.valkyrienEntitiesBypassed(), stats.valkyrienBlockEntitiesBypassed(),
+                    stats.valkyrienParticlesBypassed(), stats.valkyrienFlywheelBypassed()), x, y += line, 0x80FFB0);
         }
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.entities",
                 stats.entitiesTested(), stats.entitiesTested() - stats.entitiesSkipped(), stats.entitiesSkipped()), x, y += line, 0xD8F3FF);
@@ -71,9 +76,9 @@ public final class ClientEvents {
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.particles",
                 stats.liveParticles(), stats.particlesAccepted()), x, y += line, 0xA8C7D3);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.temporal",
-                stats.temporalUpdatesDeferred()), x, y += line, 0xD8F3FF);
+                stats.temporalUpdatesDeferred(), stats.flywheelLimiterAdjusted()), x, y += line, 0xD8F3FF);
         graphics.drawString(Minecraft.getInstance().font, Component.translatable("liubai.hud.hooks",
-                mark(hooks.entity()), mark(hooks.blockEntity()), mark(hooks.particle())),
+                mark(hooks.entity()), mark(hooks.blockEntity()), mark(hooks.particle()), mark(hooks.flywheel())),
                 x, y + line, 0xA8C7D3);
     }
 

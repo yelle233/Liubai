@@ -92,6 +92,16 @@
   "liubai.configuration.effects.particleCriticalBudget": "Critical Distant Budget",
   "liubai.configuration.effects.particleCriticalBudget.tooltip": "Maximum distant new particles admitted per render frame under critical pressure.",
 
+  "liubai.configuration.flywheel": "Create / Flywheel Integration",
+  "liubai.configuration.flywheel.button": "Create / Flywheel Integration",
+  "liubai.configuration.flywheel.tooltip": "Controls adaptive update limiting for Flywheel visuals shipped with explicitly verified Create Fabric versions.",
+  "liubai.configuration.flywheel.adaptiveLimiter": "Adaptive Flywheel Update Limiter",
+  "liubai.configuration.flywheel.adaptiveLimiter.tooltip": "Strengthens Flywheel's distance update limiter under load. It only reduces distant visual update frequency and never stops machine logic. Active only for Create Fabric 6.0.8 / Flywheel 1.0.5.",
+  "liubai.configuration.flywheel.highMultiplier": "High-pressure Interval Multiplier",
+  "liubai.configuration.flywheel.highMultiplier.tooltip": "Multiplies Flywheel's existing distant visual update interval under high pressure.",
+  "liubai.configuration.flywheel.criticalMultiplier": "Critical Interval Multiplier",
+  "liubai.configuration.flywheel.criticalMultiplier.tooltip": "Multiplies Flywheel's existing distant visual update interval under critical pressure; the final interval is capped at 31 frames.",
+
   "liubai.configuration.compatibility": "Compatibility and Allowlists",
   "liubai.configuration.compatibility.button": "Compatibility and Allowlists",
   "liubai.configuration.compatibility.tooltip": "Protects objects with special render bounds and disables culling by mod namespace.",
@@ -121,7 +131,8 @@
   "liubai.hud.pressure.high": "High",
   "liubai.hud.pressure.critical": "Critical",
   "liubai.hud.backend": "Generic occlusion backend: %s",
-  "liubai.hud.sableFallback": "Sable bridge unavailable: per-object policies conservatively disabled",
+  "liubai.hud.valkyrienFallback": "Valkyrien Skies bridge unavailable: per-object policies conservatively disabled",
+  "liubai.hud.valkyrienSafeMode": "VS ship protection/s: entities %1$s / block entities %2$s / particles %3$s / Flywheel %4$s",
   "liubai.hud.backend.builtin": "Liubai Built-in DDA",
   "liubai.hud.backend.entityCulling": "Entity Culling (Cooperation Mode)",
   "liubai.hud.backend.external": "External Mod",
@@ -133,6 +144,6 @@
   "liubai.hud.visibilityWork": "  └ checked %1$s / timed out %2$s / %3$s us",
   "liubai.hud.effects": "Omitted/s: shadows %1$s / name tags %2$s / particles %3$s",
   "liubai.hud.particles": "  └ live particles %1$s / distant admitted per second %2$s",
-  "liubai.hud.temporal": "Temporal LOD: deferred %1$s",
-  "liubai.hud.hooks": "Hooks observed: entity %1$s / block entity %2$s / particle %3$s"
+  "liubai.hud.temporal": "Temporal LOD: deferred %1$s / Flywheel limited %2$s",
+  "liubai.hud.hooks": "Hooks observed: entity %1$s / block entity %2$s / particle %3$s / Flywheel %4$s"
 }

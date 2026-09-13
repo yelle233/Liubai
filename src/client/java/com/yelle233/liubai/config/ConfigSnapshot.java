@@ -36,6 +36,9 @@ public record ConfigSnapshot(
         int particleSoftLimit,
         int particleHighBudget,
         int particleCriticalBudget,
+        boolean flywheelAdaptiveLimiter,
+        int flywheelHighMultiplier,
+        int flywheelCriticalMultiplier,
         boolean showHud,
         Set<String> entityAllowlist,
         Set<String> blockEntityAllowlist,
@@ -47,6 +50,7 @@ public record ConfigSnapshot(
                 c.safeDistance,c.occlusionMinDistance,c.checksPerFrame,c.visibilityBudgetMicros,c.occludedConfirmations,c.cacheTtlFrames,c.minimumProjectedRadius,
                 c.screenSpaceLod,c.temporalLod,c.maxTemporalInterval,c.denseVanillaEntities,c.denseEntityDistance,c.denseEntityHighLimit,c.denseEntityCriticalLimit,
                 c.reduceShadows,c.shadowDistance,c.reduceNameTags,c.nameTagDistance,c.reduceParticles,c.particleDistance,c.particleSoftLimit,c.particleHighBudget,c.particleCriticalBudget,
+                c.flywheelAdaptiveLimiter,c.flywheelHighMultiplier,c.flywheelCriticalMultiplier,
                 c.showHud,copy(c.entityAllowlist),copy(c.blockEntityAllowlist),copy(c.disabledNamespaces));
     }
 

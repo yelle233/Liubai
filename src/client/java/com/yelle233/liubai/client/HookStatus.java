@@ -5,6 +5,7 @@ public final class HookStatus {
     private static boolean entityObserved;
     private static boolean blockEntityObserved;
     private static boolean particleObserved;
+    private static boolean flywheelObserved;
 
     private HookStatus() {
     }
@@ -12,11 +13,12 @@ public final class HookStatus {
     public static void entityObserved() { entityObserved = true; }
     public static void blockEntityObserved() { blockEntityObserved = true; }
     public static void particleObserved() { particleObserved = true; }
+    public static void flywheelObserved() { flywheelObserved = true; }
 
     public static Snapshot snapshot() {
-        return new Snapshot(entityObserved, blockEntityObserved, particleObserved);
+        return new Snapshot(entityObserved, blockEntityObserved, particleObserved, flywheelObserved);
     }
 
-    public record Snapshot(boolean entity, boolean blockEntity, boolean particle) {
+    public record Snapshot(boolean entity, boolean blockEntity, boolean particle, boolean flywheel) {
     }
 }
