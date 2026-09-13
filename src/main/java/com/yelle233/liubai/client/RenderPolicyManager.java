@@ -91,7 +91,7 @@ public final class RenderPolicyManager {
     }
 
     public RenderDecision decide(Entity entity) {
-        if (config == null || !config.enabled() || !config.entityCulling() || entity.level() == null
+        if (config == null || !config.enabled() || bypassForSpectator() || !config.entityCulling() || entity.level() == null
                 || (!config.screenSpaceLod() && visibilityBackend != EffectiveVisibilityBackend.BUILTIN)) {
             return RenderDecision.FULL;
         }
@@ -176,7 +176,7 @@ public final class RenderPolicyManager {
     }
 
     public RenderDecision decide(BlockEntity blockEntity, AABB rendererBounds) {
-        if (config == null || !config.enabled() || !config.blockEntityCulling() || blockEntity.getLevel() == null
+        if (config == null || !config.enabled() || bypassForSpectator() || !config.blockEntityCulling() || blockEntity.getLevel() == null
                 || visibilityBackend != EffectiveVisibilityBackend.BUILTIN) {
             return RenderDecision.FULL;
         }
@@ -229,7 +229,7 @@ public final class RenderPolicyManager {
     }
 
     public boolean inspectBlockEntities() {
-        return config != null && config.enabled() && config.blockEntityCulling()
+        return config != null && config.enabled() && !bypassForSpectator() && config.blockEntityCulling()
                 && visibilityBackend == EffectiveVisibilityBackend.BUILTIN
                 && !SableCompatibility.conservativeFallbackActive();
     }
@@ -262,7 +262,7 @@ public final class RenderPolicyManager {
     }
 
     public boolean skipShadow(Entity entity) {
-        if (config == null || !config.enabled() || !config.reduceShadows()) return false;
+        if (config == null || !config.enabled() || bypassForSpectator() || !config.reduceShadows()) return false;
         TypePolicy typePolicy = entityTypePolicies.computeIfAbsent(entity.getType(), this::resolveEntityTypePolicy);
         if (isDynamicSubLevelEntity(entity) || isImportant(entity)
                 || typePolicy.disabled) return false;
@@ -275,7 +275,7 @@ public final class RenderPolicyManager {
     }
 
     public boolean skipNameTag(Entity entity) {
-        if (config == null || !config.enabled() || !config.reduceNameTags()) return false;
+        if (config == null || !config.enabled() || bypassForSpectator() || !config.reduceNameTags()) return false;
         TypePolicy typePolicy = entityTypePolicies.computeIfAbsent(entity.getType(), this::resolveEntityTypePolicy);
         if (isDynamicSubLevelEntity(entity) || isImportant(entity)
                 || typePolicy.disabled) return false;
@@ -292,7 +292,7 @@ public final class RenderPolicyManager {
     }
 
     public boolean skipParticle(Vec3 position) {
-        if (config == null || !config.enabled() || !config.reduceParticles() || frame.pressure() == PressureLevel.NORMAL) return false;
+        if (config == null || !config.enabled() || bypassForSpectator() || !config.reduceParticles() || frame.pressure() == PressureLevel.NORMAL) return false;
         if (SableCompatibility.conservativeFallbackActive()) {
             statistics.sableParticleBypassed();
             return false;
@@ -324,6 +324,11 @@ public final class RenderPolicyManager {
 
     public int liveParticleCount() {
         return liveParticleCount;
+    }
+
+    private boolean bypassForSpectator() {
+        Minecraft minecraft = Minecraft.getInstance();
+        return !config.cullInSpectatorMode() && minecraft.player != null && minecraft.player.isSpectator();
     }
 
     private TypePolicy resolveEntityTypePolicy(EntityType<?> type) {

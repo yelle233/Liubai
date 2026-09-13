@@ -23,6 +23,8 @@
   "liubai.configuration.culling.entities.tooltip": "允许留白在渲染前跳过满足安全条件的普通实体。",
   "liubai.configuration.culling.blockEntities": "方块实体剔除",
   "liubai.configuration.culling.blockEntities.tooltip": "允许留白在渲染前跳过被稳定遮挡的普通方块实体。",
+  "liubai.configuration.culling.spectatorMode": "观察者模式下启用剔除",
+  "liubai.configuration.culling.spectatorMode.tooltip": "关闭时，进入观察者模式后留白不会跳过实体、方块实体、阴影、名称牌或粒子渲染。",
   "liubai.configuration.culling.occlusion": "遮挡剔除",
   "liubai.configuration.culling.occlusion.tooltip": "仅在对象被完整实心方块连续遮挡多次后停止渲染。未知结果始终正常渲染。",
   "liubai.configuration.culling.occlusionMode": "遮挡后端模式",

@@ -10,6 +10,7 @@ public record ConfigSnapshot(
         boolean adaptiveMode,
         boolean entityCulling,
         boolean blockEntityCulling,
+        boolean cullInSpectatorMode,
         boolean occlusionCulling,
         OcclusionMode occlusionMode,
         double safeDistance,
@@ -46,7 +47,8 @@ public record ConfigSnapshot(
     public static ConfigSnapshot read() {
         return new ConfigSnapshot(
                 ClientConfig.ENABLED.get(), ClientConfig.TARGET_FPS.get(), ClientConfig.ADAPTIVE_MODE.get(),
-                ClientConfig.ENTITY_CULLING.get(), ClientConfig.BLOCK_ENTITY_CULLING.get(), ClientConfig.OCCLUSION_CULLING.get(),
+                ClientConfig.ENTITY_CULLING.get(), ClientConfig.BLOCK_ENTITY_CULLING.get(), ClientConfig.CULL_IN_SPECTATOR_MODE.get(),
+                ClientConfig.OCCLUSION_CULLING.get(),
                 ClientConfig.OCCLUSION_MODE.get(),
                 ClientConfig.SAFE_DISTANCE.get(), ClientConfig.OCCLUSION_MIN_DISTANCE.get(),
                 ClientConfig.OCCLUSION_CHECKS_PER_FRAME.get(), ClientConfig.OCCLUSION_BUDGET_MICROS.get(), ClientConfig.OCCLUDED_CONFIRMATIONS.get(),

@@ -23,6 +23,8 @@
   "liubai.configuration.culling.entities.tooltip": "Allows Liubai to skip ordinary entities that satisfy all safety checks.",
   "liubai.configuration.culling.blockEntities": "Block Entity Culling",
   "liubai.configuration.culling.blockEntities.tooltip": "Allows Liubai to skip ordinary block entities that are stably occluded.",
+  "liubai.configuration.culling.spectatorMode": "Cull in Spectator Mode",
+  "liubai.configuration.culling.spectatorMode.tooltip": "When disabled, Liubai does not skip entities, block entities, shadows, name tags, or particles while you are in spectator mode.",
   "liubai.configuration.culling.occlusion": "Occlusion Culling",
   "liubai.configuration.culling.occlusion.tooltip": "Stops rendering only after repeated complete occlusion by full solid blocks. Unknown results always render.",
   "liubai.configuration.culling.occlusionMode": "Occlusion Backend Mode",
