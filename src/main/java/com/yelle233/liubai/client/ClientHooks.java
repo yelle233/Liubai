@@ -19,7 +19,7 @@ public final class ClientHooks {
         // RenderFrameEvent.Pre may still expose the previous interpolated camera while the player is moving.
         // Compare against GameRenderer's camera at the actual shouldRender call instead of that frame snapshot.
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        if (!camera.isInitialized() || camera.getPosition().distanceToSqr(cameraX, cameraY, cameraZ) > 0.01) return false;
+        if (!camera.isInitialized() || camera.position().distanceToSqr(cameraX, cameraY, cameraZ) > 0.01) return false;
         LiubaiClientSystem.INSTANCE.prepareMainRender(camera);
         return LiubaiClientSystem.INSTANCE.policies().decide(entity).skip();
     }

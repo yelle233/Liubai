@@ -13,7 +13,7 @@ import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ExperienceOrb;
@@ -113,8 +113,8 @@ public final class RenderPolicyManager {
 
     private RenderDecision decideEntityUncached(Entity entity, RenderObjectKey key) {
         TypePolicy typePolicy = entityTypePolicies.computeIfAbsent(entity.getType(), this::resolveEntityTypePolicy);
-        ResourceLocation typeId = typePolicy.id;
-        AABB bounds = LiubaiApi.resolveRenderBounds(entity, entity.getBoundingBoxForCulling());
+        Identifier typeId = typePolicy.id;
+        AABB bounds = LiubaiApi.resolveRenderBounds(entity, entity.getBoundingBox());
         if (!safeGenericBounds(bounds)) return RenderDecision.SAFE;
         Vec3 center = bounds.getCenter();
         double distanceSqr = frame.cameraPosition().distanceToSqr(center);
@@ -146,12 +146,12 @@ public final class RenderPolicyManager {
         return withinSafeDistance ? RenderDecision.SAFE : RenderDecision.FULL;
     }
 
-    private boolean shouldApplyDensityLimit(Entity entity, ResourceLocation typeId, double distanceSqr) {
+    private boolean shouldApplyDensityLimit(Entity entity, Identifier typeId, double distanceSqr) {
         if (!config.denseVanillaEntities() || frame.pressure() == PressureLevel.NORMAL || typeId == null
                 || !"minecraft".equals(typeId.getNamespace())
                 || (!(entity instanceof ItemEntity) && !(entity instanceof ExperienceOrb))
                 || distanceSqr <= config.denseEntityDistance() * config.denseEntityDistance()) return false;
-        long chunk = ChunkPos.asLong(entity.getBlockX() >> 4, entity.getBlockZ() >> 4);
+        long chunk = ChunkPos.pack(entity.getBlockX() >> 4, entity.getBlockZ() >> 4);
         int limit = frame.pressure() == PressureLevel.CRITICAL
                 ? config.denseEntityCriticalLimit() : config.denseEntityHighLimit();
         return densitySelector.shouldSkip(entity.getUUID(), chunk, limit, frame.frame());
@@ -257,7 +257,7 @@ public final class RenderPolicyManager {
         return entity instanceof Mob mob && minecraft.player != null && mob.getTarget() == minecraft.player;
     }
 
-    private boolean isDisabled(ResourceLocation id, Set<String> allowlist) {
+    private boolean isDisabled(Identifier id, Set<String> allowlist) {
         return id == null || allowlist.contains(id.toString()) || config.disabledNamespaces().contains(id.getNamespace());
     }
 
@@ -332,16 +332,16 @@ public final class RenderPolicyManager {
     }
 
     private TypePolicy resolveEntityTypePolicy(EntityType<?> type) {
-        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(type);
+        Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(type);
         return new TypePolicy(id, isDisabled(id, config.entityAllowlist()));
     }
 
     private TypePolicy resolveBlockEntityTypePolicy(BlockEntityType<?> type) {
-        ResourceLocation id = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(type);
+        Identifier id = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(type);
         return new TypePolicy(id, isDisabled(id, config.blockEntityAllowlist()));
     }
 
-    private record TypePolicy(ResourceLocation id, boolean disabled) {
+    private record TypePolicy(Identifier id, boolean disabled) {
     }
 
     private record ScreenState(int smallFrames, boolean skipped, long lastFrame) {

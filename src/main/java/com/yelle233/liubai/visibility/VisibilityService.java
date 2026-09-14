@@ -202,7 +202,7 @@ public final class VisibilityService {
             Boolean solid = frameSolidBlocks.get(packed);
             if (solid == null) {
                 BlockState state = level.getBlockState(pos);
-                solid = state.canOcclude() && state.isSolidRender(level, pos);
+                solid = state.canOcclude() && state.isSolidRender();
                 frameSolidBlocks.put(packed, solid);
             }
             if (solid) return new RayTrace(RayResult.BLOCKED, pos.immutable());

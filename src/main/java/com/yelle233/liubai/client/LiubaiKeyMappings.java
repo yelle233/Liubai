@@ -10,7 +10,7 @@ public final class LiubaiKeyMappings {
             "key.liubai.open_config",
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_L,
-            "key.categories.liubai"
+            KeyMapping.Category.MISC
     );
 
     private LiubaiKeyMappings() {

@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(BlockEntityRenderDispatcher.class)
 public abstract class BlockEntityRenderDispatcherMixin {
     @Inject(method = "setupAndRender", at = @At("HEAD"), cancellable = true)
-    private static <T extends BlockEntity> void liubai$cullAfterVanillaChecks(BlockEntityRenderer<T> renderer,
+    private static <T extends BlockEntity, S extends net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState> void liubai$cullAfterVanillaChecks(BlockEntityRenderer<T, S> renderer,
                                                                               T blockEntity, float partialTick,
                                                                               PoseStack poseStack,
                                                                               MultiBufferSource bufferSource,

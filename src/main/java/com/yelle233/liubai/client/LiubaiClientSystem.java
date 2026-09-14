@@ -54,8 +54,8 @@ public final class LiubaiClientSystem {
             hasParticleSample = false;
         }
         Camera camera = minecraft.gameRenderer.getMainCamera();
-        Vec3 position = camera.isInitialized() ? camera.getPosition() : Vec3.ZERO;
-        frame = new FrameContext(++frameNumber, position, camera.getYRot(), camera.getXRot(),
+        Vec3 position = camera.isInitialized() ? camera.position() : Vec3.ZERO;
+        frame = new FrameContext(++frameNumber, position, camera.yRot(), camera.xRot(),
                 minecraft.options.fov().get(), Math.max(1, minecraft.getWindow().getHeight()), budget.pressure());
         EffectiveVisibilityBackend resolvedBackend = CompatibilityManager.INSTANCE.resolveBackend(currentConfig);
         if (resolvedBackend != visibilityBackend) {
@@ -82,14 +82,14 @@ public final class LiubaiClientSystem {
         Minecraft minecraft = Minecraft.getInstance();
         if (currentConfig == null || camera == null || !camera.isInitialized()) return;
 
-        Vec3 position = camera.getPosition();
+        Vec3 position = camera.position();
         FrameContext currentFrame = frame;
         double fov = minecraft.options.fov().get();
         int height = Math.max(1, minecraft.getWindow().getHeight());
         if (currentFrame.cameraPosition().distanceToSqr(position) > 1.0E-10
-                || currentFrame.cameraYaw() != camera.getYRot() || currentFrame.cameraPitch() != camera.getXRot()
+                || currentFrame.cameraYaw() != camera.yRot() || currentFrame.cameraPitch() != camera.xRot()
                 || currentFrame.fovDegrees() != fov || currentFrame.screenHeight() != height) {
-            currentFrame = new FrameContext(currentFrame.frame(), position, camera.getYRot(), camera.getXRot(),
+            currentFrame = new FrameContext(currentFrame.frame(), position, camera.yRot(), camera.xRot(),
                     fov, height, currentFrame.pressure());
             frame = currentFrame;
             policies.updateFrameContext(currentFrame);
