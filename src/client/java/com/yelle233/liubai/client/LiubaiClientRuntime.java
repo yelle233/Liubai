@@ -13,6 +13,9 @@ public final class LiubaiClientRuntime {
     public static void initialize() {
         ClientConfig.load();
         CompatibilityManager.INSTANCE.detect();
+        // Populate the first-frame snapshot immediately. Without this, the
+        // effective backend remains DISABLED until the config screen is closed.
+        LiubaiClientSystem.INSTANCE.refreshConfig();
         KeyBindingHelper.registerKeyBinding(LiubaiKeyMappings.OPEN_CONFIG);
         ClientTickEvents.END_CLIENT_TICK.register(ClientEvents::onClientTick);
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> ClientEvents.onHud(drawContext));

@@ -2,7 +2,7 @@
 
 纯客户端渲染预算优化模组。它通过自适应帧预算、保守遮挡确认、屏幕尺寸/密度策略以及阴影、名称牌和粒子预算，降低可见对象的客户端渲染成本；不影响服务器 Tick 或游戏逻辑。
 
-当前版本：`1.0.1-1.20.1`。运行环境：Minecraft 1.20.1、Fabric Loader、Fabric API、Java 17。
+当前版本：`1.0.0`。运行环境：Minecraft 1.20.1、Fabric Loader、Fabric API、Java 17。
 
 配置文件：`config/liubai-client.json`；默认按键：`L`。配置界面和调试 HUD 支持中英文，并包含常规、剔除、LOD、次要效果、Create/Flywheel、兼容性和调试七个配置分组。观察者模式剔除默认关闭。
 
