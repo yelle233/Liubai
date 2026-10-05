@@ -40,7 +40,9 @@ import java.util.Set;
 public final class RenderPolicyManager {
     private static final Set<ParticleType<?>> IMPORTANT_PARTICLES = Set.of(
             ParticleTypes.DAMAGE_INDICATOR, ParticleTypes.TOTEM_OF_UNDYING, ParticleTypes.SONIC_BOOM,
-            ParticleTypes.EXPLOSION_EMITTER, ParticleTypes.FLASH, ParticleTypes.SWEEP_ATTACK
+            ParticleTypes.EXPLOSION_EMITTER, ParticleTypes.FLASH, ParticleTypes.SWEEP_ATTACK,
+            // Firework Starter mutates the nested SparkParticle immediately; never return null here.
+            ParticleTypes.FIREWORK
     );
     private static final double MAX_GENERIC_BOUNDS = 256.0;
 
