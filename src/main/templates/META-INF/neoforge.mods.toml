@@ -37,17 +37,3 @@ config="${mod_id}.mixins.json"
     versionRange="[0,)"
     ordering="AFTER"
     side="CLIENT"
-
-[[dependencies.${mod_id}]]
-    modId="create"
-    type="optional"
-    versionRange="[0,)"
-    ordering="AFTER"
-    side="CLIENT"
-
-[[dependencies.${mod_id}]]
-    modId="flywheel"
-    type="optional"
-    versionRange="[0,)"
-    ordering="AFTER"
-    side="CLIENT"

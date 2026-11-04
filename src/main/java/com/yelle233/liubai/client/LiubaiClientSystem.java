@@ -3,7 +3,6 @@ package com.yelle233.liubai.client;
 import com.yelle233.liubai.Liubai;
 import com.yelle233.liubai.config.ConfigSnapshot;
 import com.yelle233.liubai.compat.CompatibilityManager;
-import com.yelle233.liubai.compat.sable.SableCompatibility;
 import com.yelle233.liubai.visibility.EffectiveVisibilityBackend;
 import com.yelle233.liubai.visibility.VisibilityService;
 import net.minecraft.client.Camera;
@@ -43,7 +42,6 @@ public final class LiubaiClientSystem {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
-        SableCompatibility.beginFrame(minecraft.level);
         if (minecraft.level != lastLevel) {
             visibility.clear();
             budget.reset();
@@ -143,29 +141,6 @@ public final class LiubaiClientSystem {
     public EffectiveVisibilityBackend visibilityBackend() { return visibilityBackend; }
     public TemporalLodScheduler temporalScheduler() { return temporalScheduler; }
     public RenderStatistics statisticsRecorder() { return statistics; }
-
-    public int adjustFlywheelUpdateDivisor(double distanceSquared, int original) {
-        ConfigSnapshot currentConfig = config;
-        FrameContext currentFrame = frame;
-        if (currentConfig == null || !currentConfig.enabled() || !currentConfig.temporalLod()
-                || !currentConfig.flywheelAdaptiveLimiter()
-                || !CompatibilityManager.INSTANCE.supportsAdaptiveFlywheelLimiter()
-                || currentFrame.pressure() == PressureLevel.NORMAL) return original;
-        if (SableCompatibility.flywheelSafeModeActive()) {
-            statistics.sableFlywheelBypassed();
-            return original;
-        }
-        double safeDistance = Math.max(16.0, currentConfig.safeDistance());
-        if (distanceSquared <= safeDistance * safeDistance) return original;
-        int multiplier = currentFrame.pressure() == PressureLevel.CRITICAL
-                ? currentConfig.flywheelCriticalMultiplier() : currentConfig.flywheelHighMultiplier();
-        int adjusted = Math.max(original, Math.min(31, original * multiplier));
-        if (currentFrame.pressure() == PressureLevel.CRITICAL && distanceSquared >= 1024.0) {
-            adjusted = Math.max(adjusted, Math.min(31, currentConfig.maxTemporalInterval()));
-        }
-        if (adjusted != original) statistics.flywheelLimiterAdjusted();
-        return adjusted;
-    }
 
     public void resetWorld() {
         visibility.clear();

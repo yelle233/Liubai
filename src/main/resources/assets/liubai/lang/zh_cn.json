@@ -88,16 +88,6 @@
   "liubai.configuration.effects.particleCriticalBudget": "严重压力每帧远距离粒子预算",
   "liubai.configuration.effects.particleCriticalBudget.tooltip": "严重压力下每个渲染帧最多接收的远距离新粒子数量。",
 
-  "liubai.configuration.flywheel": "Create/Flywheel 协作",
-  "liubai.configuration.flywheel.button": "Create/Flywheel 协作",
-  "liubai.configuration.flywheel.tooltip": "通过 Flywheel 自带的距离更新限制器降低远处机械 Visual 的更新频率；只在明确支持的版本上启用。",
-  "liubai.configuration.flywheel.adaptiveLimiter": "自适应 Flywheel 更新限制",
-  "liubai.configuration.flywheel.adaptiveLimiter.tooltip": "在高压力下增强 Flywheel 自带的距离更新限制，不删除实例，也不会停止机械逻辑。当前支持 Create 6.0.10 / Flywheel 1.0.6。",
-  "liubai.configuration.flywheel.highMultiplier": "高压力更新间隔倍率",
-  "liubai.configuration.flywheel.highMultiplier.tooltip": "高压力时，将远距离 Flywheel Visual 原有更新间隔乘以该数值。",
-  "liubai.configuration.flywheel.criticalMultiplier": "严重压力更新间隔倍率",
-  "liubai.configuration.flywheel.criticalMultiplier.tooltip": "严重压力时，将远距离 Flywheel Visual 原有更新间隔乘以该数值。",
-
   "liubai.configuration.compatibility": "兼容性与白名单",
   "liubai.configuration.compatibility.button": "兼容性与白名单",
   "liubai.configuration.compatibility.tooltip": "保护具有特殊渲染边界的对象，并按模组命名空间关闭剔除。",
@@ -109,7 +99,7 @@
   "liubai.configuration.compatibility.blockEntityAllowlist.tooltip": "这些方块实体类型始终正常渲染，适用于光柱、传送门等超出单方块边界的效果。",
   "liubai.configuration.compatibility.disabledNamespaces": "禁用优化的模组命名空间",
   "liubai.configuration.compatibility.disabledNamespaces.button": "禁用的模组命名空间",
-  "liubai.configuration.compatibility.disabledNamespaces.tooltip": "留白不会剔除来自这些命名空间的实体和方块实体。Create/Flywheel 默认采用保守模式。",
+  "liubai.configuration.compatibility.disabledNamespaces.tooltip": "留白不会剔除来自这些命名空间的实体和方块实体。默认列表为空，可按需添加。",
 
   "liubai.configuration.debug": "调试设置",
   "liubai.configuration.debug.button": "调试设置",
@@ -127,8 +117,6 @@
   "liubai.hud.pressure.high": "高",
   "liubai.hud.pressure.critical": "严重",
   "liubai.hud.backend": "通用遮挡后端：%s",
-  "liubai.hud.sableSafeMode": "航空学安全模式：实体 %1$s / 方块实体 %2$s / 粒子 %3$s / Flywheel %4$s",
-  "liubai.hud.sableFallback": "Sable 兼容桥不可用：已保守停用逐对象优化",
   "liubai.hud.backend.builtin": "留白内置 DDA",
   "liubai.hud.backend.entityCulling": "Entity Culling（协作模式）",
   "liubai.hud.backend.external": "外部模组",
@@ -140,6 +128,6 @@
   "liubai.hud.visibilityWork": "  └ 检测 %1$s / 超时 %2$s / 耗时 %3$s 微秒",
   "liubai.hud.effects": "每秒省略：阴影 %1$s / 名称牌 %2$s / 粒子 %3$s",
   "liubai.hud.particles": "  └ 存活粒子 %1$s / 每秒接收远距离粒子 %2$s",
-  "liubai.hud.temporal": "时间 LOD：延后更新 %1$s / Flywheel 限制增强 %2$s",
-  "liubai.hud.hooks": "Hook 已观测：实体 %1$s / 方块实体 %2$s / 粒子 %3$s / Flywheel %4$s"
+  "liubai.hud.temporal": "时间 LOD：延后更新 %1$s",
+  "liubai.hud.hooks": "Hook 已观测：实体 %1$s / 方块实体 %2$s / 粒子 %3$s"
 }

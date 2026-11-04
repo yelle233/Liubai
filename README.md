@@ -1,4 +1,4 @@
-# 留白 / Liubai
+# 留白 / Liubai — NeoForge 26.1.2
 
 [简体中文](#简体中文) | [English](#english)
 
@@ -15,6 +15,14 @@
 
 留白不会优化服务器 TPS，也不会停止实体 AI、红石、配方、机器逻辑或服务端 Tick。
 
+### 版本与使用
+
+- 当前分支：`26.1.2neoforge`；留白版本：`1.0.0`。
+- 运行环境：Minecraft `26.1.2`、NeoForge；需要 Java `25`。当前构建与自动检查使用 NeoForge `26.1.2.109`。
+- 仅安装在客户端，不需要安装到服务器；其他模组均非必需前置。
+- 配置文件：`config/liubai-client.toml`。默认按 `L` 打开设置，可在按键设置中重新绑定。
+- 配置界面和调试 HUD 支持中英文；观察者模式剔除默认关闭。
+
 ### 功能
 
 - 自动识别 Entity Culling，并在 `AUTO` 模式暂停留白的重复 DDA 遮挡队列；
@@ -24,12 +32,10 @@
 - 基于屏幕投影尺寸、对象密度和目标 FPS 的稳定远距离策略；
 - 粒子 Provider 创建前预算、存活数量软上限，以及实体阴影和名称牌预算；
 - 有数量与严格微秒截止时间、移动遮挡证明、优先重检和最新边界替换的内置遮挡队列；长射线超时会延期，不覆盖已有安全证明；
-- 在实际主渲染 Hook 到达后同步当前摄像机，再处理本帧可见性队列，降低移动时使用上一帧插值位置的风险；
+- 在渲染状态提取前初始化本帧，在实际主相机 Hook 到达后同步摄像机并处理可见性队列，渲染结束后汇总统计；
 - 使用真实时间迟滞的 `NORMAL / HIGH / CRITICAL` 帧预算压力控制器，不再因玩家 FPS 不同而改变恢复时长；
 - 安全的时间 LOD 更新槽 API，不停止实体或机器逻辑 Tick；
 - 显式渲染质量建议与第三方实体/方块实体边界注册 API；
-- Create 6.0.10 / Flywheel 1.0.6 的版本锁定更新限制器适配；
-- Sable 2.0.3 / Create Aeronautics 1.3.0 动态子世界安全模式；兼容桥失效时默认停用无法安全归属的逐对象策略；
 - Iris 公开 API 阴影 Pass 保护，阴影相机阶段保守放行实体和方块实体；
 - 稳定的掉落物/经验球密度集合、类型策略缓存，以及降频采样的粒子数量和 HUD 可见性统计；
 - 中英文配置界面、默认按 `L` 打开的可重绑定设置快捷键和详细性能 HUD；HUD 可显示 DDA 超时和本会话实际观测到的 Mixin Hook；
@@ -41,29 +47,29 @@
 
 - 安装 Entity Culling：通用遮挡交给 Entity Culling，留白不运行 DDA 队列；
 - 未安装 Entity Culling：留白使用内置保守遮挡后端；
-- 屏幕空间 LOD、次要效果和 Flywheel 时间 LOD 在两种情况下都可以继续工作。
+- 屏幕空间 LOD、次要效果和通用时间 LOD API 在两种情况下都可以继续工作。
 
 可以在配置界面选择 `AUTO / BUILTIN / EXTERNAL / OFF`。不建议同时强制启用两个通用遮挡后端。`EXTERNAL` 当前没有通用外部提供者接口实现，因此不会运行留白的内置 DDA。
 
-当前已测试 Entity Culling 1.10.5。Entity Culling 自己跳过的对象不会计入留白 HUD。
+Entity Culling 自己跳过的对象不会计入留白 HUD。本分支的 26.1.2 运行时联动仍需实机验证，不沿用旧版 Minecraft 的测试结论。
 
-### Create、Flywheel 与动态子世界
+### 26.1.2 NeoForge 兼容范围
 
-当前明确支持：
+截至 2026-10-23，查询 Create 官方、Create Aeronautics 和 Sable 的 Modrinth 发布列表，未找到 Minecraft 26.1.2 NeoForge 对应版本。因此本分支不包含 Create/Flywheel 限频适配或 Sable/航空学动态子世界安全模式，也不显示其配置和 HUD 项。
 
-```text
-Create 6.0.10
-Flywheel 1.0.6
+Create Fly 有 Minecraft 26.1.2 移植版，但对应文件仅支持 Fabric，不能用于此 NeoForge 分支。来源与后续重新接入条件见[兼容性与 API](docs/COMPATIBILITY_AND_API.md#version-availability-checked-2026-10-23)。其他 Minecraft 分支的兼容代码不受此次清理影响。
+
+### 构建与验证
+
+在项目根目录使用 Java 25 运行：
+
+```powershell
+.\gradlew.bat build
 ```
 
-留白不会删除或重建 Flywheel Instance，而是在高压力下增强 Flywheel 自带的距离更新限制器。近距离 Visual 保持原频率，远距离机械只降低渲染状态更新频率，机器逻辑不受影响。
+构建产物位于 `build/libs/liubai-1.0.0.jar`。`build` 会执行渲染 Hook 目标与帧时序检查、HUD 颜色与计数回归检查，以及可见性数学和密度选择自检。
 
-其他版本会记录兼容状态并保持原 Flywheel 行为，不会因为缺失类阻止客户端启动。
-
-Sable 2.0.3 / Create Aeronautics 1.3.0 存在时，留白会保守绕过动态子世界对象的逐对象策略，并保护 Plot 局部坐标粒子。活动 SubLevel 存在期间不会叠加无法可靠区分所属 Visual 的 Flywheel 倍率。这是避免错误坐标判断和负优化的安全模式，不是结构级 LOD、代理模型、GPU 遮挡或完整航空学性能接管。
-
-如果 Sable 已被检测到，但公开兼容桥初始化或运行时查询失败，留白会进入 fail-closed 回退：实体、方块实体、粒子和额外 Flywheel 限频宁可少优化，也不把未知动态子世界对象当作普通主世界对象处理。HUD 会明确显示该状态。
-
+本分支已修复 HUD 文字因缺少透明度而不可见、帧初始化晚于渲染状态提取导致 DDA 队列不处理，以及方块实体/阴影仍使用旧版入口的问题。自动检查通过不代表完整的游戏内兼容性验证；实机测试应确认内置 DDA 检测不再始终为 0，并在有效遮挡场景检查跳过数量。HUD 为留白自己的统计，不包含原版或 Entity Culling 已跳过的对象。
 
 ### 文档
 
@@ -84,6 +90,14 @@ Liubai is a client-only adaptive rendering-budget mod designed primarily to redu
 
 Liubai does not improve server TPS or stop entity AI, redstone, recipes, machine logic, or server ticks.
 
+### Version and usage
+
+- Branch: `26.1.2neoforge`; Liubai version: `1.0.0`.
+- Requires Minecraft `26.1.2`, NeoForge, and Java `25`. The current build and automated checks use NeoForge `26.1.2.109`.
+- Install on the client only; no server installation or other mods are required.
+- Configuration file: `config/liubai-client.toml`. Press `L` by default to open settings; the shortcut is rebindable.
+- Chinese and English configuration screens and HUD are included. Spectator-mode culling is disabled by default.
+
 ### Features
 
 - Detects Entity Culling automatically and suspends Liubai's duplicate DDA occlusion queue in `AUTO` mode;
@@ -93,12 +107,10 @@ Liubai does not improve server TPS or stop entity AI, redstone, recipes, machine
 - Applies stable distance policies based on projected screen size, object density, and the target FPS;
 - Budgets particles before the Provider creates them, uses a live-particle soft limit, and budgets entity shadows and name tags;
 - Includes a built-in occlusion queue with count and strict microsecond deadlines, camera-movement occlusion proofs, priority rechecks, and latest-bound replacement; long ray checks are deferred without overwriting an existing safe proof;
-- Synchronizes the current camera when the first confirmed main-render hook arrives, then processes the frame's visibility queue to reduce the risk of using the previous frame's interpolated camera position while moving;
+- Initializes the frame before render-state extraction, synchronizes the camera and processes visibility at the first confirmed main-camera hook, and publishes statistics after rendering;
 - Uses a real-time-hysteresis `NORMAL / HIGH / CRITICAL` frame-budget pressure controller whose recovery timing does not vary with the player's FPS;
 - Exposes a safe temporal LOD update-slot API without stopping entity or machine logic ticks;
 - Exposes explicit rendering-quality hints and registration APIs for third-party entity and block-entity bounds;
-- Provides a version-locked update-limiter integration for Create 6.0.10 / Flywheel 1.0.6;
-- Provides a dynamic-subworld safety mode for Sable 2.0.3 / Create Aeronautics 1.3.0; if the compatibility bridge fails, per-object policies that cannot be assigned safely are disabled by default;
 - Uses the public Iris API to protect shadow passes, conservatively allowing entities and block entities during the shadow-camera stage;
 - Keeps stable density selections for dropped items and experience orbs, caches type policies, and samples particle counts and HUD visibility statistics at reduced frequency;
 - Includes Chinese and English configuration screens, a rebindable settings shortcut mapped to `L` by default, and a detailed performance HUD that can show DDA timeouts and Mixin hooks actually observed in the current session;
@@ -110,29 +122,34 @@ The default occlusion mode is `AUTO`:
 
 - With Entity Culling installed, general occlusion is delegated to Entity Culling and Liubai does not run its DDA queue;
 - Without Entity Culling, Liubai uses its conservative built-in occlusion backend;
-- Screen-space LOD, secondary-effect budgets, and Flywheel temporal LOD can continue to work in either case.
+- Screen-space LOD, secondary-effect budgets, and the generic temporal LOD API can continue to work in either case.
 
 The configuration screen offers `AUTO / BUILTIN / EXTERNAL / OFF`. Forcing two general occlusion backends at the same time is not recommended. `EXTERNAL` currently has no general external-provider implementation, so Liubai's built-in DDA does not run in that mode.
 
-Entity Culling 1.10.5 has been tested. Objects skipped by Entity Culling are not included in Liubai's HUD counters.
+Objects skipped by Entity Culling are not included in Liubai's HUD counters. Runtime integration on 26.1.2 still requires in-game verification; test results from older Minecraft versions do not apply automatically.
 
-### Create, Flywheel, and dynamic subworlds
+### 26.1.2 NeoForge compatibility scope
 
-Explicitly supported versions:
+As of 2026-10-23, the Modrinth release lists for official Create, Create Aeronautics, and Sable contain no Minecraft 26.1.2 NeoForge releases. This branch therefore omits the Create/Flywheel limiter adapter and Sable/Aeronautics dynamic-subworld safety mode, including their configuration and HUD entries.
 
-```text
-Create 6.0.10
-Flywheel 1.0.6
+Create Fly has a Minecraft 26.1.2 port, but its matching files are Fabric-only and cannot be used on this NeoForge branch. See [availability evidence and re-integration requirements](docs/COMPATIBILITY_AND_API.md#version-availability-checked-2026-10-23). Compatibility code on other Minecraft branches is unchanged.
+
+### Build and verification
+
+Run from the project root with Java 25:
+
+```powershell
+.\gradlew.bat build
 ```
 
-Liubai does not remove or rebuild Flywheel instances. Under high rendering pressure, it strengthens Flywheel's own distance-based update limiter. Nearby visuals retain their original update rate, while distant machinery only updates its rendered state less often; machine logic is unaffected.
+The artifact is `build/libs/liubai-1.0.0.jar`. The build runs render-hook target and frame-order checks, HUD color and counter regression checks, and visibility-math and density-selection self-tests.
 
-Other versions retain Flywheel's original behavior and report their compatibility status. Missing classes do not prevent the client from starting.
-
-When Sable 2.0.3 / Create Aeronautics 1.3.0 is present, Liubai conservatively bypasses per-object policies for dynamic-subworld objects and protects particles expressed in local Plot coordinates. While an active SubLevel exists, Liubai does not add a Flywheel multiplier when it cannot reliably identify the owning Visual. This is a safety mode that avoids incorrect coordinate assumptions and negative optimization. It is not structure-level LOD, proxy modeling, GPU occlusion, or complete Aeronautics performance management.
-
-If Sable is detected but its public compatibility bridge fails to initialize or throws during a runtime query, Liubai enters a fail-closed fallback. It prefers less optimization for entities, block entities, particles, and extra Flywheel limiting over treating unknown dynamic-subworld objects as ordinary main-world objects. The HUD reports this state explicitly.
+This branch fixes invisible zero-alpha HUD text, a frame-start ordering error that prevented DDA queue processing, and obsolete block-entity/shadow hooks. Automated checks do not replace in-game compatibility testing. Verify that built-in DDA checks no longer remain at zero and that skipped counts increase in a valid occlusion scene. HUD counters cover Liubai's own decisions, not objects already skipped by vanilla or Entity Culling.
 
 ### Documentation
 
 - [Compatibility and API](docs/COMPATIBILITY_AND_API.md)
+
+## License
+
+MIT. See [LICENSE](LICENSE).

@@ -36,9 +36,6 @@ public record ConfigSnapshot(
         int particleSoftLimit,
         int particleHighBudget,
         int particleCriticalBudget,
-        boolean flywheelAdaptiveLimiter,
-        int flywheelHighMultiplier,
-        int flywheelCriticalMultiplier,
         boolean showHud,
         Set<String> entityAllowlist,
         Set<String> blockEntityAllowlist,
@@ -60,8 +57,7 @@ public record ConfigSnapshot(
                 ClientConfig.REDUCE_NAME_TAGS.get(), ClientConfig.NAME_TAG_DISTANCE.get(),
                 ClientConfig.REDUCE_PARTICLES.get(), ClientConfig.PARTICLE_DISTANCE.get(), ClientConfig.PARTICLE_SOFT_LIMIT.get(),
                 ClientConfig.PARTICLE_HIGH_BUDGET.get(), ClientConfig.PARTICLE_CRITICAL_BUDGET.get(),
-                ClientConfig.FLYWHEEL_ADAPTIVE_LIMITER.get(), ClientConfig.FLYWHEEL_HIGH_MULTIPLIER.get(),
-                ClientConfig.FLYWHEEL_CRITICAL_MULTIPLIER.get(), ClientConfig.SHOW_HUD.get(),
+                ClientConfig.SHOW_HUD.get(),
                 copy(ClientConfig.ENTITY_ALLOWLIST.get()), copy(ClientConfig.BLOCK_ENTITY_ALLOWLIST.get()),
                 copy(ClientConfig.DISABLED_NAMESPACES.get()));
     }

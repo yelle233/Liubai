@@ -42,8 +42,23 @@ RenderQuality quality = LiubaiApi.recommendedRenderQuality(center, worldRadius, 
 ## Built-in integrations
 
 - Entity Culling: AUTO delegates generic occlusion and disables Liubai's DDA queue.
-- Create 6.0.10 / Flywheel 1.0.6: version-locked `BandedPrimeLimiter` update-divisor adjustment.
-- Sable 2.0.3 / Create Aeronautics 1.3.0: reflection-isolated safe mode for dynamic sublevels. Sublevel entities, block entities, and Plot-local particles bypass incompatible per-object policies; Liubai's extra Flywheel multiplier is suspended while active Aeronautics sublevels exist.
-- Other Create/Flywheel or addon versions: no compatibility claim; unsupported limiter adapters remain inactive.
+- Iris: the public API is queried to conservatively bypass entity, block-entity, and shadow policies during shadow passes. This is not a shader performance optimization.
 
-The Sable/Aeronautics integration is a conservative compatibility fallback, not structure-level LOD, proxy rendering, or a claim of complete large-contraption performance coverage.
+These integrations remain in the source; compiling does not establish in-game compatibility with every third-party version.
+
+## Version availability (checked 2026-10-23)
+
+This document describes only the `26.1.2neoforge` branch (Minecraft 26.1.2, NeoForge).
+
+| Project | Public release evidence | Decision for this branch |
+| --- | --- | --- |
+| [Create](https://modrinth.com/mod/create/versions) | Official Modrinth project lists releases through Minecraft 1.21.1, with no 26.1.2 files. | Remove the inherited Create/Flywheel limiter adapter and optional dependency declarations. |
+| [Create Aeronautics](https://modrinth.com/mod/create-aeronautics/versions) | Published files target Minecraft 1.21.1, not 26.1.2. | Remove Aeronautics detection and its dedicated safety mode. |
+| [Sable](https://modrinth.com/mod/sable/versions) | Published files target Minecraft 1.21.1, not 26.1.2. | Remove the reflection bridge and per-object/sublevel checks. |
+| [Create Fly](https://modrinth.com/mod/create-fly/versions) | Version `26.1.2-6.0.9-4` targets Minecraft 26.1.2, but its loader is Fabric, not NeoForge. | Does not justify retaining NeoForge compatibility code. |
+
+Verification used each project's Modrinth `/v2/project/{slug}/version` API, checking the game version and loader of actual files rather than search tags or addon listings. No matching NeoForge port was found in the searched results; this does not rule out private or unpublished builds.
+
+The obsolete Flywheel configuration section, related HUD counters/translations, and default `create`/`flywheel` namespace exclusions were also removed. The general namespace allowlist, force-visible/bounds rules, and temporal-update API remain available. Existing user configuration files are not rewritten by this source change; legacy namespace entries may still be present in an existing profile.
+
+If matching NeoForge releases become available, inspect their actual rendering/sublevel APIs and test them in-game before reintroducing adapters. Do not reuse the Minecraft 1.21.1 version assumptions as a compatibility claim for 26.1.2. Other branches are unaffected.

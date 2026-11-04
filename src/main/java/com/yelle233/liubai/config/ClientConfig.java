@@ -41,9 +41,6 @@ public final class ClientConfig {
     public static final ModConfigSpec.IntValue PARTICLE_SOFT_LIMIT;
     public static final ModConfigSpec.IntValue PARTICLE_HIGH_BUDGET;
     public static final ModConfigSpec.IntValue PARTICLE_CRITICAL_BUDGET;
-    public static final ModConfigSpec.BooleanValue FLYWHEEL_ADAPTIVE_LIMITER;
-    public static final ModConfigSpec.IntValue FLYWHEEL_HIGH_MULTIPLIER;
-    public static final ModConfigSpec.IntValue FLYWHEEL_CRITICAL_MULTIPLIER;
 
     public static final ModConfigSpec.BooleanValue SHOW_HUD;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> ENTITY_ALLOWLIST;
@@ -123,15 +120,6 @@ public final class ClientConfig {
                 .defineInRange("particleCriticalBudget", 128, 8, 4096);
         BUILDER.pop();
 
-        BUILDER.translation("liubai.configuration.flywheel").push("flywheel");
-        FLYWHEEL_ADAPTIVE_LIMITER = BUILDER.comment("Enhance Flywheel's own distance update limiter on explicitly supported versions.")
-                .translation("liubai.configuration.flywheel.adaptiveLimiter").define("adaptiveLimiter", true);
-        FLYWHEEL_HIGH_MULTIPLIER = BUILDER.translation("liubai.configuration.flywheel.highMultiplier")
-                .defineInRange("highMultiplier", 2, 1, 8);
-        FLYWHEEL_CRITICAL_MULTIPLIER = BUILDER.translation("liubai.configuration.flywheel.criticalMultiplier")
-                .defineInRange("criticalMultiplier", 3, 1, 12);
-        BUILDER.pop();
-
         BUILDER.translation("liubai.configuration.compatibility").push("compatibility");
         ENTITY_ALLOWLIST = BUILDER.comment("Entity type ids that Liubai must never hide.")
                 .translation("liubai.configuration.compatibility.entityAllowlist")
@@ -145,9 +133,9 @@ public final class ClientConfig {
                         "minecraft:beacon", "minecraft:end_gateway", "minecraft:end_portal",
                         "minecraft:structure_block", "minecraft:conduit"
                 ), () -> "minecraft:chest", ClientConfig::isResourceLocation);
-        DISABLED_NAMESPACES = BUILDER.comment("Never cull content from these mod namespaces. Create is conservative until a versioned Flywheel adapter is installed.")
+        DISABLED_NAMESPACES = BUILDER.comment("Never cull content from these mod namespaces.")
                 .translation("liubai.configuration.compatibility.disabledNamespaces")
-                .defineListAllowEmpty("disabledNamespaces", List.of("create", "flywheel"), () -> "examplemod", ClientConfig::isNamespace);
+                .defineListAllowEmpty("disabledNamespaces", List.<String>of(), () -> "examplemod", ClientConfig::isNamespace);
         BUILDER.pop();
 
         BUILDER.translation("liubai.configuration.debug").push("debug");

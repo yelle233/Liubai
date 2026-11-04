@@ -2,7 +2,6 @@ package com.yelle233.liubai.client;
 
 import com.yelle233.liubai.api.LiubaiApi;
 import com.yelle233.liubai.config.ConfigSnapshot;
-import com.yelle233.liubai.compat.sable.SableCompatibility;
 import com.yelle233.liubai.visibility.EffectiveVisibilityBackend;
 import com.yelle233.liubai.visibility.RenderObjectKey;
 import com.yelle233.liubai.visibility.VisibilityMath;
@@ -47,7 +46,6 @@ public final class RenderPolicyManager {
     private final VisibilityService visibility;
     private final RenderStatistics statistics;
     private final Map<Object, RenderDecision> frameDecisions = new IdentityHashMap<>();
-    private final Map<Object, Boolean> dynamicSubLevelObjects = new IdentityHashMap<>();
     private final StableDensitySelector densitySelector = new StableDensitySelector();
     private final Map<EntityType<?>, TypePolicy> entityTypePolicies = new IdentityHashMap<>();
     private final Map<BlockEntityType<?>, TypePolicy> blockEntityTypePolicies = new IdentityHashMap<>();
@@ -72,7 +70,6 @@ public final class RenderPolicyManager {
         this.liveParticleCount = liveParticleCount;
         particlesAdmittedThisFrame = 0;
         frameDecisions.clear();
-        dynamicSubLevelObjects.clear();
         if (configChanged) {
             entityTypePolicies.clear();
             blockEntityTypePolicies.clear();
@@ -97,12 +94,6 @@ public final class RenderPolicyManager {
         }
         RenderDecision cached = frameDecisions.get(entity);
         if (cached != null) return cached;
-
-        if (isDynamicSubLevelEntity(entity)) {
-            frameDecisions.put(entity, RenderDecision.FULL);
-            statistics.sableEntityBypassed();
-            return RenderDecision.FULL;
-        }
 
         RenderObjectKey key = RenderObjectKey.entity(entity.level().dimension(), entity.getUUID());
         RenderDecision decision = decideEntityUncached(entity, key);
@@ -214,33 +205,9 @@ public final class RenderPolicyManager {
         return distanceSqr >= start * start;
     }
 
-    public boolean bypassDynamicBlockEntity(BlockEntity blockEntity) {
-        if (config == null || !config.enabled() || blockEntity == null || blockEntity.getLevel() == null) return false;
-        if (SableCompatibility.conservativeFallbackActive()) {
-            statistics.sableBlockEntityBypassed();
-            return true;
-        }
-        Boolean cached = dynamicSubLevelObjects.get(blockEntity);
-        if (cached != null) return cached;
-        boolean bypass = SableCompatibility.contains(blockEntity);
-        dynamicSubLevelObjects.put(blockEntity, bypass);
-        if (bypass) statistics.sableBlockEntityBypassed();
-        return bypass;
-    }
-
     public boolean inspectBlockEntities() {
         return config != null && config.enabled() && !bypassForSpectator() && config.blockEntityCulling()
-                && visibilityBackend == EffectiveVisibilityBackend.BUILTIN
-                && !SableCompatibility.conservativeFallbackActive();
-    }
-
-    private boolean isDynamicSubLevelEntity(Entity entity) {
-        if (SableCompatibility.conservativeFallbackActive()) return true;
-        Boolean cached = dynamicSubLevelObjects.get(entity);
-        if (cached != null) return cached;
-        boolean bypass = SableCompatibility.contains(entity);
-        dynamicSubLevelObjects.put(entity, bypass);
-        return bypass;
+                && visibilityBackend == EffectiveVisibilityBackend.BUILTIN;
     }
 
     private static boolean safeGenericBounds(AABB bounds) {
@@ -264,7 +231,7 @@ public final class RenderPolicyManager {
     public boolean skipShadow(Entity entity) {
         if (config == null || !config.enabled() || bypassForSpectator() || !config.reduceShadows()) return false;
         TypePolicy typePolicy = entityTypePolicies.computeIfAbsent(entity.getType(), this::resolveEntityTypePolicy);
-        if (isDynamicSubLevelEntity(entity) || isImportant(entity)
+        if (isImportant(entity)
                 || typePolicy.disabled) return false;
         double distance = config.shadowDistance();
         if (frame.pressure() == PressureLevel.HIGH) distance *= 0.75;
@@ -277,7 +244,7 @@ public final class RenderPolicyManager {
     public boolean skipNameTag(Entity entity) {
         if (config == null || !config.enabled() || bypassForSpectator() || !config.reduceNameTags()) return false;
         TypePolicy typePolicy = entityTypePolicies.computeIfAbsent(entity.getType(), this::resolveEntityTypePolicy);
-        if (isDynamicSubLevelEntity(entity) || isImportant(entity)
+        if (isImportant(entity)
                 || typePolicy.disabled) return false;
         double distance = config.nameTagDistance();
         if (frame.pressure() == PressureLevel.CRITICAL) distance *= 0.75;
@@ -293,14 +260,6 @@ public final class RenderPolicyManager {
 
     public boolean skipParticle(Vec3 position) {
         if (config == null || !config.enabled() || bypassForSpectator() || !config.reduceParticles() || frame.pressure() == PressureLevel.NORMAL) return false;
-        if (SableCompatibility.conservativeFallbackActive()) {
-            statistics.sableParticleBypassed();
-            return false;
-        }
-        if (SableCompatibility.contains(Minecraft.getInstance().level, position)) {
-            statistics.sableParticleBypassed();
-            return false;
-        }
         if (frame.cameraPosition().distanceToSqr(position) <= config.particleDistance() * config.particleDistance()) return false;
         int budget = frame.pressure() == PressureLevel.CRITICAL
                 ? config.particleCriticalBudget() : config.particleHighBudget();

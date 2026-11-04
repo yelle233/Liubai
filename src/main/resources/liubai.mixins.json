@@ -4,10 +4,11 @@
   "package": "com.yelle233.liubai.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "GameRendererMixin",
     "EntityRenderDispatcherMixin",
+    "EntityRendererMixin",
     "BlockEntityRenderDispatcherMixin",
-    "ParticleEngineMixin",
-    "FlywheelBandedPrimeLimiterMixin"
+    "ParticleEngineMixin"
   ],
   "injectors": {
     "defaultRequire": 0

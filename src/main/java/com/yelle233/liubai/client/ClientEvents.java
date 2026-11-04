@@ -1,6 +1,5 @@
 package com.yelle233.liubai.client;
 
-import com.yelle233.liubai.compat.sable.SableCompatibility;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -29,11 +28,6 @@ public final class ClientEvents {
         if (LiubaiKeyMappings.OPEN_CONFIG.consumeClick()) {
             minecraft.setScreen(new ConfigurationScreen(container, null));
         }
-    }
-
-    @SubscribeEvent
-    public void onFramePre(RenderFrameEvent.Pre event) {
-        LiubaiClientSystem.INSTANCE.beginFrame();
     }
 
     @SubscribeEvent
@@ -67,52 +61,43 @@ public final class ClientEvents {
             case CRITICAL -> "liubai.hud.pressure.critical";
         });
         Component backend = Component.translatable(system.visibilityBackend().translationKey());
+        // GuiGraphicsExtractor requires ARGB; RGB-only text has zero alpha and is discarded.
         int pressureColor = switch (system.frame().pressure()) {
-            case NORMAL -> 0x80FF80;
-            case HIGH -> 0xFFE080;
-            case CRITICAL -> 0xFF7070;
+            case NORMAL -> 0xFF80FF80;
+            case HIGH -> 0xFFFFE080;
+            case CRITICAL -> 0xFFFF7070;
         };
 
         int x = 6, y = 6, line = 10;
-        boolean sableSafeMode = SableCompatibility.flywheelSafeModeActive();
-        boolean sableFallback = SableCompatibility.conservativeFallbackActive();
         HookStatus.Snapshot hooks = HookStatus.snapshot();
-        graphics.fill(2, 2, 430, sableSafeMode || sableFallback ? 168 : 158, 0xA0000000);
-        graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.title", state), x, y, 0xFFFFFF);
+        graphics.fill(2, 2, 430, 158, 0xA0000000);
+        graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.title", state), x, y, 0xFFFFFFFF);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.frame",
-                decimal(frameMillis), decimal(targetMillis), integer(estimatedFps)), x, y += line, 0xD8F3FF);
+                decimal(frameMillis), decimal(targetMillis), integer(estimatedFps)), x, y += line, 0xFFD8F3FF);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.percentiles",
-                decimal(system.p95RenderMillis()), decimal(system.p99RenderMillis())), x, y += line, 0xA8C7D3);
+                decimal(system.p95RenderMillis()), decimal(system.p99RenderMillis())), x, y += line, 0xFFA8C7D3);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.pressure", pressure), x, y += line, pressureColor);
-        graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.backend", backend), x, y += line, 0xB8E0FF);
-        if (sableFallback) {
-            graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.sableFallback"),
-                    x, y += line, 0xFFB070);
-        } else if (sableSafeMode) {
-            graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.sableSafeMode",
-                    stats.sableEntitiesBypassed(), stats.sableBlockEntitiesBypassed(),
-                    stats.sableParticlesBypassed(), stats.sableFlywheelBypassed()), x, y += line, 0x80FFB0);
-        }
+        graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.backend", backend), x, y += line, 0xFFB8E0FF);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.entities",
-                stats.entitiesTested(), stats.entitiesTested() - stats.entitiesSkipped(), stats.entitiesSkipped()), x, y += line, 0xD8F3FF);
+                stats.entitiesTested(), stats.entitiesTested() - stats.entitiesSkipped(), stats.entitiesSkipped()), x, y += line, 0xFFD8F3FF);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.entityReasons",
-                stats.entitiesOccluded(), stats.entitiesTooSmall(), stats.entitiesDensityLimited()), x, y += line, 0xA8C7D3);
+                stats.entitiesOccluded(), stats.entitiesTooSmall(), stats.entitiesDensityLimited()), x, y += line, 0xFFA8C7D3);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.blockEntities",
                 stats.blockEntitiesTested(), stats.blockEntitiesTested() - stats.blockEntitiesSkipped(),
-                stats.blockEntitiesSkipped(), stats.blockEntitiesOccluded()), x, y += line, 0xD8F3FF);
+                stats.blockEntitiesSkipped(), stats.blockEntitiesOccluded()), x, y += line, 0xFFD8F3FF);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.visibility",
-                stats.visible(), stats.occluded(), stats.unknown(), stats.queued()), x, y += line, 0xD8F3FF);
+                stats.visible(), stats.occluded(), stats.unknown(), stats.queued()), x, y += line, 0xFFD8F3FF);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.visibilityWork",
-                stats.visibilityChecks(), stats.visibilityTimeouts(), stats.visibilityMicros()), x, y += line, 0xA8C7D3);
+                stats.visibilityChecks(), stats.visibilityTimeouts(), stats.visibilityMicros()), x, y += line, 0xFFA8C7D3);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.effects",
-                stats.shadowsSkipped(), stats.nameTagsSkipped(), stats.particlesSkipped()), x, y += line, 0xD8F3FF);
+                stats.shadowsSkipped(), stats.nameTagsSkipped(), stats.particlesSkipped()), x, y += line, 0xFFD8F3FF);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.particles",
-                stats.liveParticles(), stats.particlesAccepted()), x, y += line, 0xA8C7D3);
+                stats.liveParticles(), stats.particlesAccepted()), x, y += line, 0xFFA8C7D3);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.temporal",
-                stats.temporalUpdatesDeferred(), stats.flywheelLimiterAdjusted()), x, y += line, 0xD8F3FF);
+                stats.temporalUpdatesDeferred()), x, y += line, 0xFFD8F3FF);
         graphics.text(Minecraft.getInstance().font, Component.translatable("liubai.hud.hooks",
-                mark(hooks.entity()), mark(hooks.blockEntity()), mark(hooks.particle()), mark(hooks.flywheel())),
-                x, y + line, 0xA8C7D3);
+                mark(hooks.entity()), mark(hooks.blockEntity()), mark(hooks.particle())),
+                x, y + line, 0xFFA8C7D3);
     }
 
     private static String decimal(double value) {

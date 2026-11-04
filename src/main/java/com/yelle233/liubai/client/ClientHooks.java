@@ -29,10 +29,6 @@ public final class ClientHooks {
         return LiubaiClientSystem.INSTANCE.policies().decide(blockEntity, rendererBounds).skip();
     }
 
-    public static boolean shouldBypassBlockEntity(BlockEntity blockEntity) {
-        return LiubaiClientSystem.INSTANCE.policies().bypassDynamicBlockEntity(blockEntity);
-    }
-
     public static boolean shouldInspectBlockEntities() {
         if (IrisCompatibility.shouldBypassPerObjectPolicies()) return false;
         prepareMainRender();

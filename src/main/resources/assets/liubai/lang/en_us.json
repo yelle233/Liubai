@@ -88,16 +88,6 @@
   "liubai.configuration.effects.particleCriticalBudget": "Critical Distant Budget",
   "liubai.configuration.effects.particleCriticalBudget.tooltip": "Maximum distant new particles admitted per render frame under critical pressure.",
 
-  "liubai.configuration.flywheel": "Create/Flywheel Cooperation",
-  "liubai.configuration.flywheel.button": "Create/Flywheel Cooperation",
-  "liubai.configuration.flywheel.tooltip": "Uses Flywheel's own distance update limiter to reduce distant mechanical Visual updates, only on explicitly supported versions.",
-  "liubai.configuration.flywheel.adaptiveLimiter": "Adaptive Flywheel Update Limiter",
-  "liubai.configuration.flywheel.adaptiveLimiter.tooltip": "Strengthens Flywheel's own distance update limiter under pressure without deleting instances or stopping machine logic. Supports Create 6.0.10 / Flywheel 1.0.6.",
-  "liubai.configuration.flywheel.highMultiplier": "High-pressure Interval Multiplier",
-  "liubai.configuration.flywheel.highMultiplier.tooltip": "Multiplies Flywheel's existing distant Visual update interval under high pressure.",
-  "liubai.configuration.flywheel.criticalMultiplier": "Critical-pressure Interval Multiplier",
-  "liubai.configuration.flywheel.criticalMultiplier.tooltip": "Multiplies Flywheel's existing distant Visual update interval under critical pressure.",
-
   "liubai.configuration.compatibility": "Compatibility and Allowlists",
   "liubai.configuration.compatibility.button": "Compatibility and Allowlists",
   "liubai.configuration.compatibility.tooltip": "Protects objects with special render bounds and disables culling by mod namespace.",
@@ -109,7 +99,7 @@
   "liubai.configuration.compatibility.blockEntityAllowlist.tooltip": "These block entity types always render, suitable for beams, portals, and effects extending beyond one block.",
   "liubai.configuration.compatibility.disabledNamespaces": "Disabled Mod Namespaces",
   "liubai.configuration.compatibility.disabledNamespaces.button": "Disabled Mod Namespaces",
-  "liubai.configuration.compatibility.disabledNamespaces.tooltip": "Liubai does not cull entities or block entities from these namespaces. Create/Flywheel uses conservative mode by default.",
+  "liubai.configuration.compatibility.disabledNamespaces.tooltip": "Liubai does not cull entities or block entities from these namespaces. The default list is empty; add entries as needed.",
 
   "liubai.configuration.debug": "Debug",
   "liubai.configuration.debug.button": "Debug",
@@ -127,8 +117,6 @@
   "liubai.hud.pressure.high": "High",
   "liubai.hud.pressure.critical": "Critical",
   "liubai.hud.backend": "Generic occlusion backend: %s",
-  "liubai.hud.sableSafeMode": "Aeronautics safe mode: entities %1$s / block entities %2$s / particles %3$s / Flywheel %4$s",
-  "liubai.hud.sableFallback": "Sable bridge unavailable: per-object policies conservatively disabled",
   "liubai.hud.backend.builtin": "Liubai Built-in DDA",
   "liubai.hud.backend.entityCulling": "Entity Culling (Cooperation Mode)",
   "liubai.hud.backend.external": "External Mod",
@@ -140,6 +128,6 @@
   "liubai.hud.visibilityWork": "  └ checked %1$s / timed out %2$s / %3$s us",
   "liubai.hud.effects": "Omitted/s: shadows %1$s / name tags %2$s / particles %3$s",
   "liubai.hud.particles": "  └ live particles %1$s / distant admitted per second %2$s",
-  "liubai.hud.temporal": "Temporal LOD: deferred %1$s / Flywheel limiter strengthened %2$s",
-  "liubai.hud.hooks": "Hooks observed: entity %1$s / block entity %2$s / particle %3$s / Flywheel %4$s"
+  "liubai.hud.temporal": "Temporal LOD: deferred %1$s",
+  "liubai.hud.hooks": "Hooks observed: entity %1$s / block entity %2$s / particle %3$s"
 }
