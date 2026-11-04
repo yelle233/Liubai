@@ -9,7 +9,7 @@
 [![AI 辅助制作](https://img.shields.io/badge/AI-OpenAI%20Codex%20辅助制作-10A37F?style=for-the-badge&logo=openai&logoColor=white)](#ai-制作声明)
 
 > [!IMPORTANT]
-> **AI 制作声明：本项目采用生成式 AI 参与设计、编码、UI 改进、文档编写与测试。** AI 生成或修改的内容由项目维护者审阅、验证并承担最终维护责任。
+> **AI 制作声明：本项目采用生成式 AI 参与设计、编码、UI 改进与测试。** AI 生成或修改的内容由项目维护者审阅、验证并承担最终维护责任。
 
 留白（Liubai）是纯客户端自适应渲染预算模组，主要改善大型基地和大量可见动态对象场景的客户端渲染压力。
 
@@ -57,7 +57,7 @@ Entity Culling 自己跳过的对象不会计入留白 HUD。本分支的 26.1.2
 
 截至 2026-10-23，查询 Create 官方、Create Aeronautics 和 Sable 的 Modrinth 发布列表，未找到 Minecraft 26.1.2 NeoForge 对应版本。因此本分支不包含 Create/Flywheel 限频适配或 Sable/航空学动态子世界安全模式，也不显示其配置和 HUD 项。
 
-Create Fly 有 Minecraft 26.1.2 移植版，但对应文件仅支持 Fabric，不能用于此 NeoForge 分支。来源与后续重新接入条件见[兼容性与 API](docs/COMPATIBILITY_AND_API.md#version-availability-checked-2026-10-23)。其他 Minecraft 分支的兼容代码不受此次清理影响。
+Create Fly 有 Minecraft 26.1.2 移植版，但对应文件仅支持 Fabric，不能用于此 NeoForge 分支。其他 Minecraft 分支的兼容代码不受此次清理影响。
 
 ### 构建与验证
 
@@ -71,10 +71,6 @@ Create Fly 有 Minecraft 26.1.2 移植版，但对应文件仅支持 Fabric，�
 
 本分支已修复 HUD 文字因缺少透明度而不可见、帧初始化晚于渲染状态提取导致 DDA 队列不处理，以及方块实体/阴影仍使用旧版入口的问题。自动检查通过不代表完整的游戏内兼容性验证；实机测试应确认内置 DDA 检测不再始终为 0，并在有效遮挡场景检查跳过数量。HUD 为留白自己的统计，不包含原版或 Entity Culling 已跳过的对象。
 
-### 文档
-
-- [兼容性与 API](docs/COMPATIBILITY_AND_API.md)
-
 ---
 
 ## English
@@ -84,7 +80,7 @@ Create Fly 有 Minecraft 26.1.2 移植版，但对应文件仅支持 Fabric，�
 [![AI Assisted](https://img.shields.io/badge/AI-OpenAI%20Codex%20Assisted-10A37F?style=for-the-badge&logo=openai&logoColor=white)](#ai-assistance-disclosure)
 
 > [!IMPORTANT]
-> **AI assistance disclosure: Generative AI was used in the design, coding, UI improvements, documentation, and testing of this project.** AI-generated or AI-modified content is reviewed and verified by the project maintainer, who retains final responsibility for maintenance.
+> **AI assistance disclosure: Generative AI was used in the design, coding, UI improvements, and testing of this project.** AI-generated or AI-modified content is reviewed and verified by the project maintainer, who retains final responsibility for maintenance.
 
 Liubai is a client-only adaptive rendering-budget mod designed primarily to reduce client-side rendering pressure in large bases and scenes with many visible dynamic objects.
 
@@ -132,7 +128,7 @@ Objects skipped by Entity Culling are not included in Liubai's HUD counters. Run
 
 As of 2026-10-23, the Modrinth release lists for official Create, Create Aeronautics, and Sable contain no Minecraft 26.1.2 NeoForge releases. This branch therefore omits the Create/Flywheel limiter adapter and Sable/Aeronautics dynamic-subworld safety mode, including their configuration and HUD entries.
 
-Create Fly has a Minecraft 26.1.2 port, but its matching files are Fabric-only and cannot be used on this NeoForge branch. See [availability evidence and re-integration requirements](docs/COMPATIBILITY_AND_API.md#version-availability-checked-2026-10-23). Compatibility code on other Minecraft branches is unchanged.
+Create Fly has a Minecraft 26.1.2 port, but its matching files are Fabric-only and cannot be used on this NeoForge branch. Compatibility code on other Minecraft branches is unchanged.
 
 ### Build and verification
 
@@ -145,10 +141,6 @@ Run from the project root with Java 25:
 The artifact is `build/libs/liubai-1.0.0.jar`. The build runs render-hook target and frame-order checks, HUD color and counter regression checks, and visibility-math and density-selection self-tests.
 
 This branch fixes invisible zero-alpha HUD text, a frame-start ordering error that prevented DDA queue processing, and obsolete block-entity/shadow hooks. Automated checks do not replace in-game compatibility testing. Verify that built-in DDA checks no longer remain at zero and that skipped counts increase in a valid occlusion scene. HUD counters cover Liubai's own decisions, not objects already skipped by vanilla or Entity Culling.
-
-### Documentation
-
-- [Compatibility and API](docs/COMPATIBILITY_AND_API.md)
 
 ## License
 
